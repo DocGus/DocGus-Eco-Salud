@@ -40,6 +40,14 @@ class FileStatus(str, enum.Enum):
     approved = "approved"
     confirmed = "confirmed"
 
+class AcademicGradeProf(str, enum.Enum):
+    licenciatura = "licenciatura"
+    especialidad = "especialidad"
+    maestria = "maestría"
+    doctorado = "doctorado"
+    pos_doctorado = "pos-doctorado"
+
+
 class AcademicGrade(str, enum.Enum):
     no_formal_education = "no_formal_education"
     elementary_school = "elementary_school"
@@ -139,7 +147,7 @@ class ProfessionalStudentData(db.Model):
     
     institution: Mapped[str] = mapped_column(String(100), nullable=False)
     career: Mapped[str] = mapped_column(String(100), nullable=False)
-    academic_grade: Mapped[AcademicGrade] = mapped_column(Enum(AcademicGrade), nullable=False)
+    academic_grade_prof: Mapped[AcademicGradeProf] = mapped_column(Enum(AcademicGradeProf), nullable=False)
     register_number: Mapped[str] = mapped_column(String(30), nullable=False)
 
     # -------- VALIDACIÓN DEL ADMIN AL PROFESSIONAL --------
@@ -190,7 +198,7 @@ class ProfessionalStudentData(db.Model):
             "user_id": self.user_id,
             "institution": self.institution,
             "career": self.career,
-            "academic_grade": self.academic_grade.value,
+            "academic_grade_prof": self.academic_grade_prof.value,
             "register_number": self.register_number,
 
             # Admin que valida Professional

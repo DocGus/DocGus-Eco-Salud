@@ -26,7 +26,6 @@ const Register = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Si quieres que el rol se actualice si cambia la URL (opcional)
   useEffect(() => {
     setFormData(prev => ({ ...prev, role: roleFromURL }));
   }, [roleFromURL]);
@@ -41,7 +40,6 @@ const Register = () => {
     setError("");
     setSuccess("");
 
-    // Validaciones básicas
     if (!formData.first_name || !formData.first_surname || !formData.birth_day || !formData.email || !formData.password || !formData.role) {
       setError("Por favor llena todos los campos obligatorios.");
       return;
@@ -112,7 +110,7 @@ const Register = () => {
               </div>
             ))}
 
-            {/* Campos académicos sólo para professional y student */}
+            {/* Campos académicos solo para professional y student */}
             {(formData.role === "professional" || formData.role === "student") && (
               <>
                 <div className="col-12 col-md-6 col-lg-4">
@@ -152,17 +150,25 @@ const Register = () => {
                     required
                   >
                     <option value="" disabled hidden>Selecciona</option>
-                    {[
-                      "no_formal_education",
-                      "elementary_school",
-                      "middle_school",
-                      "high_school",
-                      "technical",
-                      "bachelor",
-                      "postgraduate_studies"
-                    ].map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
+                    {formData.role === "professional" ? (
+                      <>
+                        <option value="licenciatura">Licenciatura</option>
+                        <option value="especialidad">Especialidad</option>
+                        <option value="maestría">Maestría</option>
+                        <option value="doctorado">Doctorado</option>
+                        <option value="pos-doctorado">Pos-doctorado</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="no_formal_education">Sin educación formal</option>
+                        <option value="elementary_school">Primaria</option>
+                        <option value="middle_school">Secundaria</option>
+                        <option value="high_school">Preparatoria</option>
+                        <option value="technical">Técnico</option>
+                        <option value="bachelor">Licenciatura</option>
+                        <option value="postgraduate_studies">Estudios de posgrado</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
