@@ -45,8 +45,15 @@ const Register = () => {
       return;
     }
 
-    if (formData.role === "professional" || formData.role === "student") {
+    if (formData.role === "professional") {
       if (!formData.institution || !formData.career || !formData.academic_grade || !formData.register_number) {
+        setError("Por favor llena todos los campos académicos obligatorios.");
+        return;
+      }
+    }
+
+    if (formData.role === "student") {
+      if (!formData.institution || !formData.career || !formData.register_number) {
         setError("Por favor llena todos los campos académicos obligatorios.");
         return;
       }
@@ -110,7 +117,7 @@ const Register = () => {
               </div>
             ))}
 
-            {/* Campos académicos solo para professional y student */}
+            {/* Campos académicos para professional y student */}
             {(formData.role === "professional" || formData.role === "student") && (
               <>
                 <div className="col-12 col-md-6 col-lg-4">
@@ -139,38 +146,27 @@ const Register = () => {
                   />
                 </div>
 
-                <div className="col-12 col-md-6 col-lg-4">
-                  <label className="form-label text-white">Grado Académico</label>
-                  <select
-                    name="academic_grade"
-                    className="form-select"
-                    style={inputStyle}
-                    value={formData.academic_grade}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="" disabled hidden>Selecciona</option>
-                    {formData.role === "professional" ? (
-                      <>
-                        <option value="licenciatura">Licenciatura</option>
-                        <option value="especialidad">Especialidad</option>
-                        <option value="maestría">Maestría</option>
-                        <option value="doctorado">Doctorado</option>
-                        <option value="pos-doctorado">Pos-doctorado</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="no_formal_education">Sin educación formal</option>
-                        <option value="elementary_school">Primaria</option>
-                        <option value="middle_school">Secundaria</option>
-                        <option value="high_school">Preparatoria</option>
-                        <option value="technical">Técnico</option>
-                        <option value="bachelor">Licenciatura</option>
-                        <option value="postgraduate_studies">Estudios de posgrado</option>
-                      </>
-                    )}
-                  </select>
-                </div>
+                {/* Campo grado académico solo para professional */}
+                {formData.role === "professional" && (
+                  <div className="col-12 col-md-6 col-lg-4">
+                    <label className="form-label text-white">Grado Académico</label>
+                    <select
+                      name="academic_grade"
+                      className="form-select"
+                      style={inputStyle}
+                      value={formData.academic_grade}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="" disabled hidden>Selecciona</option>
+                      <option value="licenciatura">licenciatura</option>
+                      <option value="especialidad">especialidad</option>
+                      <option value="maestria">maestria</option>
+                      <option value="doctorado">doctorado</option>
+                      <option value="pos_doctorado">pos_doctorado</option>
+                    </select>
+                  </div>
+                )}
 
                 <div className="col-12 col-md-6 col-lg-4">
                   <label className="form-label text-white">Número de Registro</label>

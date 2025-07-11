@@ -19,7 +19,7 @@ const UsersTable = () => {
       }
 
       const data = await response.json();
-      setUsers(Array.isArray(data) ? data : data.users);
+      setUsers(data);  // ✅ FIX: ahora usamos directamente data porque es un array
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -45,7 +45,6 @@ const UsersTable = () => {
         throw new Error('No se pudo eliminar el usuario');
       }
 
-      // Quitar el usuario eliminado del estado
       setUsers(users.filter(user => user.id !== userId));
       alert("Usuario eliminado correctamente");
     } catch (error) {
@@ -72,12 +71,18 @@ const UsersTable = () => {
       }
 
       alert("Profesional validado exitosamente");
-      // Recargar la lista
       fetchUsers();
     } catch (error) {
       console.error('Error validando profesional:', error);
       alert('Error validando profesional');
     }
+  };
+
+  const formatStatus = (status) => {
+    if (status === "pre_approved") return "Pre-aprobado";
+    if (status === "approved") return "Aprobado";
+    if (status === "inactive") return "Inactivo";
+    return status;
   };
 
   return (
@@ -101,7 +106,7 @@ const UsersTable = () => {
                 {`${user.first_name || ""} ${user.second_name || ""} ${user.first_surname || ""} ${user.second_surname || ""}`}
               </td>
               <td>{user.role}</td>
-              <td>{user.status}</td>
+              <td>{formatStatus(user.status)}</td>
               <td>
                 <button
                   className="btn btn-success me-2"

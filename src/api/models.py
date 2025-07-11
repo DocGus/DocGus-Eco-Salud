@@ -151,8 +151,8 @@ class ProfessionalStudentData(db.Model):
     register_number: Mapped[str] = mapped_column(String(30), nullable=False)
 
     # -------- VALIDACIÓN DEL ADMIN AL PROFESSIONAL --------
-    validated_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)  # Admin que valida al Professional
-    validated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)               # Fecha validación Professional
+    validated_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)  
+    validated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     
     validated_by: Mapped["User"] = relationship(
         "User",
@@ -160,14 +160,14 @@ class ProfessionalStudentData(db.Model):
     )
 
     # -------- VALIDACIÓN DEL PROFESSIONAL AL STUDENT --------
-    requested_professional_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)  # Professional al que el Student le pide validación
-    requested_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)                        # Cuándo solicitó
+    requested_professional_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+    requested_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
-    approved_by_professional_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True) # Professional que aprueba al Student
-    approved_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)                          # Cuándo aprobó
+    approved_by_professional_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+    approved_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
-    rejected_by_professional_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True) # Si es rechazado
-    rejected_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)                          # Cuándo rechazó
+    rejected_by_professional_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+    rejected_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     requested_professional: Mapped["User"] = relationship(
         "User",
@@ -198,7 +198,7 @@ class ProfessionalStudentData(db.Model):
             "user_id": self.user_id,
             "institution": self.institution,
             "career": self.career,
-            "academic_grade_prof": self.academic_grade_prof.value,
+            "academic_grade_prof": self.academic_grade_prof.value if self.academic_grade_prof else None,
             "register_number": self.register_number,
 
             # Admin que valida Professional
@@ -215,6 +215,7 @@ class ProfessionalStudentData(db.Model):
             "rejected_by_professional_id": self.rejected_by_professional_id,
             "rejected_at": serialize_datetime(self.rejected_at),
         }
+
 
 # -------------------- MODELO: MEDICAL FILE --------------------
 class MedicalFile(db.Model):

@@ -58,39 +58,35 @@ def register_user():
             role=data["role"]
         )
         db.session.add(new_user)
-        db.session.flush()
+        db.session.flush()  # Para tener el ID del usuario
 
         # ✔️ Si es student o professional, registrar datos académicos
         if data["role"] in ["student", "professional"]:
-            required_academic_fields = ["institution", "career", "academic_grade", "register_number"]
+            required_academic_fields = ["institution", "career", "register_number"]
             for field in required_academic_fields:
                 if field not in data or not data[field]:
                     return jsonify({"message": f"Campo académico requerido: {field}"}), 400
 
+            # ✔️ Para professional, validar academic_grade_prof
             if data["role"] == "professional":
-                from api.models import AcademicGradeProf  # Importa tu Enum si no está arriba
+                from api.models import AcademicGradeProf  # Asegúrate que tu Enum esté importado
+                if "academic_grade" not in data or not data["academic_grade"]:
+                    return jsonify({"message": "Campo académico requerido: academic_grade"}), 400
                 try:
                     grade_enum = AcademicGradeProf(data["academic_grade"])
                 except ValueError:
                     valid_grades = [g.value for g in AcademicGradeProf]
                     return jsonify({"message": f"academic_grade inválido. Opciones válidas: {valid_grades}"}), 400
-                
-                academic_data = ProfessionalStudentData(
-                    user_id=new_user.id,
-                    institution=data["institution"],
-                    career=data["career"],
-                    academic_grade_prof=grade_enum,
-                    register_number=data["register_number"]
-                )
             else:
-                # Para student, seguimos usando academic_grade si aplica
-                academic_data = ProfessionalStudentData(
-                    user_id=new_user.id,
-                    institution=data["institution"],
-                    career=data["career"],
-                    academic_grade_prof=None,  # O ajusta según lógica futura
-                    register_number=data["register_number"]
-                )
+                grade_enum = None  # ✔️ Para estudiantes, se deja vacío
+
+            academic_data = ProfessionalStudentData(
+                user_id=new_user.id,
+                institution=data["institution"],
+                career=data["career"],
+                academic_grade_prof=grade_enum,
+                register_number=data["register_number"]
+            )
             db.session.add(academic_data)
 
         # ✔️ Si es patient, crear expediente en estado empty
@@ -104,6 +100,7 @@ def register_user():
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error en el servidor: {str(e)}"}), 500
+
 
 
 
