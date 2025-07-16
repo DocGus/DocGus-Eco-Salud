@@ -58,7 +58,7 @@ def register_user():
             role=data["role"]
         )
         db.session.add(new_user)
-        db.session.flush()  # Para tener el ID del usuario
+        db.session.flush()  # obtener el ID
 
         # ✔️ Si es student o professional, registrar datos académicos
         if data["role"] in ["student", "professional"]:
@@ -67,9 +67,9 @@ def register_user():
                 if field not in data or not data[field]:
                     return jsonify({"message": f"Campo académico requerido: {field}"}), 400
 
-            # ✔️ Para professional, validar academic_grade_prof
+            # Para profesionales, academic_grade_prof es obligatorio
             if data["role"] == "professional":
-                from api.models import AcademicGradeProf  # Asegúrate que tu Enum esté importado
+                from api.models import AcademicGradeProf
                 if "academic_grade" not in data or not data["academic_grade"]:
                     return jsonify({"message": "Campo académico requerido: academic_grade"}), 400
                 try:
@@ -78,7 +78,7 @@ def register_user():
                     valid_grades = [g.value for g in AcademicGradeProf]
                     return jsonify({"message": f"academic_grade inválido. Opciones válidas: {valid_grades}"}), 400
             else:
-                grade_enum = None  # ✔️ Para estudiantes, se deja vacío
+                grade_enum = None  # Para estudiantes se deja como None
 
             academic_data = ProfessionalStudentData(
                 user_id=new_user.id,
@@ -100,8 +100,6 @@ def register_user():
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error en el servidor: {str(e)}"}), 500
-
-
 
 
 # 02 EPT para login
@@ -338,9 +336,9 @@ def get_student_requests():
             "full_name": f"{student.first_name} {student.first_surname}",
             "email": student.email,
             "career": data.career,
-            "academic_grade": data.academic_grade.value,
+            "academic_grade": data.academic_grade_prof.value if data.academic_grade_prof else "N/A",
             "requested_at": data.requested_at.isoformat() if data.requested_at else None,
-            "status": student.status.value  # ✅ Agregado aquí
+            "status": student.status.value
         })
 
     return jsonify(result), 200

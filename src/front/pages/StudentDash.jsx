@@ -10,6 +10,7 @@ const StudentDash = () => {
   const [assignedPatients, setAssignedPatients] = useState([]);
   const [professionalId, setProfessionalId] = useState("");
   const [studentStatus, setStudentStatus] = useState(null);
+  const [requestedProfessionalId, setRequestedProfessionalId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,6 +21,13 @@ const StudentDash = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
+
+        // Obtener datos privados
+        const privateRes = await fetch(`${backendUrl}/api/private`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const privateData = await privateRes.json();
+        setRequestedProfessionalId(privateData?.user?.academic_data?.requested_professional_id || null);
 
         // Obtener solicitudes de pacientes
         const requestsRes = await fetch(`${backendUrl}/api/student/patient_requests`, {
@@ -64,7 +72,7 @@ const StudentDash = () => {
       });
       if (!res.ok) throw new Error("Error solicitando aprobación");
       alert("Solicitud de aprobación enviada.");
-      setStudentStatus("pre_approved");
+      setRequestedProfessionalId(professionalId);
     } catch (error) {
       alert(error.message);
     }
@@ -97,15 +105,14 @@ const StudentDash = () => {
 
   return (
     <div className="student-dash container py-4">
-      
       <h2>Panel del Estudiante</h2>
       <UserInfoCard user={user} />
       <div className="request-professional-approval mb-4">
         <h4>Solicitar aprobación al profesional</h4>
         {studentStatus === "approved" ? (
           <p>✅ Ya has sido validado por tu profesional.</p>
-        ) : studentStatus === "pre_approved" ? (
-          <p>⏳ A la espera de validación por tu profesional seleccionado (ID: {professionalId || "N/A"}).</p>
+        ) : requestedProfessionalId ? (
+          <p>⏳ A la espera de validación por tu profesional seleccionado (ID: {requestedProfessionalId}).</p>
         ) : (
           <>
             <input
