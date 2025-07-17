@@ -73,7 +73,12 @@ const DashLayout = () => {
             >
               Mi Dashboard
             </Link>
-            {/* ✅ Eliminado el link extra de "Solicitar Estudiante" */}
+            <Link
+              to="/dashboard/patient/request_student"
+              style={isActive("/dashboard/patient/request_student") ? activeLinkStyle : linkStyle}
+            >
+              Solicitar Estudiante
+            </Link>
           </>
         )}
       </div>

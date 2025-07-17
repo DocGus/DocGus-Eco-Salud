@@ -17,6 +17,7 @@ import StudentDash from "./pages/StudentDash.jsx";
 import ProfessionalDash from "./pages/ProfessionalDash.jsx";
 import PatientDash from "./pages/PatientDash.jsx";
 import BackGroundInterview from "./pages/BackGroundInterview.jsx";
+import PatientRequestStudent from "./pages/PatientRequestStudent.jsx"; // ✅ Importación añadida
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -33,9 +34,7 @@ export const router = createBrowserRouter(
         <Route path="student/interview/:medicalFileId" element={<BackGroundInterview />} />
         <Route path="professional" element={<ProfessionalDash />} />
         <Route path="patient" element={<PatientDash />} />
-        {/* ❌ Ruta redundante eliminada:
-        <Route path="patient/request_student" element={<PatientRequestStudent />} /> 
-        */}
+        <Route path="patient/request_student" element={<PatientRequestStudent />} /> {/* ✅ Ruta restaurada */}
       </Route>
     </Route>
   )
