@@ -17,7 +17,12 @@ import StudentDash from "./pages/StudentDash.jsx";
 import ProfessionalDash from "./pages/ProfessionalDash.jsx";
 import PatientDash from "./pages/PatientDash.jsx";
 import BackGroundInterview from "./pages/BackGroundInterview.jsx";
-import PatientRequestStudent from "./pages/PatientRequestStudent.jsx"; // ✅ Importación añadida
+import PatientRequestStudent from "./pages/PatientRequestStudent.jsx";
+import StudentRequestProfessional from "./pages/StudentRequestProfessional.jsx";
+import ValidationPatientRequest from "./pages/ValidationPatientRequest.jsx";
+import StudentPatientProgress from "./pages/StudentPatientProgress.jsx";
+import ValidationStudentRequest from "./pages/ValidationStudentRequest.jsx";
+import StudentFilesReview from "./pages/StudentFilesReview.jsx";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -32,9 +37,14 @@ export const router = createBrowserRouter(
         <Route path="admin/users_table" element={<UsersTable />} />
         <Route path="student" element={<StudentDash />} />
         <Route path="student/interview/:medicalFileId" element={<BackGroundInterview />} />
+        <Route path="student/request_approval" element={<StudentRequestProfessional />} />
+        <Route path="student/patient_requests" element={<ValidationPatientRequest />} />
+        <Route path="student/assigned_patients" element={<StudentPatientProgress />} />
         <Route path="professional" element={<ProfessionalDash />} />
+        <Route path="professional/validate_students" element={<ValidationStudentRequest />} />
+        <Route path="professional/review_files" element={<StudentFilesReview />} />
         <Route path="patient" element={<PatientDash />} />
-        <Route path="patient/request_student" element={<PatientRequestStudent />} /> {/* ✅ Ruta restaurada */}
+        <Route path="patient/request_student" element={<PatientRequestStudent />} />
       </Route>
     </Route>
   )

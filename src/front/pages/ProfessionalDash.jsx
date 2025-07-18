@@ -97,8 +97,9 @@ const ProfessionalDash = () => {
 
   return (
     <div className="professional-dash container py-4">
-      <UserInfoCard user={user} />
       <h2>Panel del Profesional</h2>
+      <UserInfoCard user={user} />
+      
 
       {/* ---------------------- SECCIÓN A: Solicitudes de estudiantes ---------------------- */}
       <h4>Solicitudes de estudiantes para validación</h4>
