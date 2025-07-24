@@ -23,6 +23,7 @@ import ValidationPatientRequest from "./pages/ValidationPatientRequest.jsx";
 import StudentPatientProgress from "./pages/StudentPatientProgress.jsx";
 import ValidationStudentRequest from "./pages/ValidationStudentRequest.jsx";
 import StudentFilesReview from "./pages/StudentFilesReview.jsx";
+import ConfirmFile from "./pages/ConfirmFile.jsx"; // ← ✅ NUEVO
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -45,6 +46,7 @@ export const router = createBrowserRouter(
         <Route path="professional/review_files" element={<StudentFilesReview />} />
         <Route path="patient" element={<PatientDash />} />
         <Route path="patient/request_student" element={<PatientRequestStudent />} />
+        <Route path="patient/confirm_file" element={<ConfirmFile />} /> {/* ✅ NUEVA RUTA */}
       </Route>
     </Route>
   )

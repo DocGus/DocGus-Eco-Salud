@@ -9,7 +9,6 @@ const StudentPatientRequests = () => {
 
   const navigate = useNavigate();
 
-  // Obtener solicitudes
   const fetchRequests = async () => {
     setLoading(true);
     setError(null);
@@ -17,8 +16,8 @@ const StudentPatientRequests = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(${import.meta.env.VITE_BACKEND_URL}/api/student/patient_requests, {
-        headers: { Authorization: Bearer ${token} }
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/student/patient_requests`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
 
@@ -37,18 +36,17 @@ const StudentPatientRequests = () => {
     fetchRequests();
   }, []);
 
-  // Manejar aceptar o rechazar
   const handleAction = async (patientId, action) => {
     setError(null);
     setActionMessage(null);
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(${import.meta.env.VITE_BACKEND_URL}/api/student/validate_patient/${patientId}, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/student/validate_patient/${patientId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: Bearer ${token}
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ action })
       });
@@ -60,10 +58,8 @@ const StudentPatientRequests = () => {
         setActionMessage(data.message);
 
         if (action === 'approve') {
-          // Redirigir al formulario de entrevista con el patientId (o medicalFileId si lo tienes)
-          navigate(/dashboard/student/interview/${patientId});
+          navigate(`/dashboard/student/interview/${patientId}`);
         } else {
-          // Solo refrescar solicitudes si es rechazo
           fetchRequests();
         }
       }

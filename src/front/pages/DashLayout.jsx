@@ -113,6 +113,12 @@ const DashLayout = () => {
             >
               Solicitar Estudiante
             </Link>
+            <Link
+              to="/dashboard/patient/confirm_file"
+              style={isActive("/dashboard/patient/confirm_file") ? activeLinkStyle : linkStyle}
+            >
+              Confirmar Expediente
+            </Link>
           </>
         )}
       </div>
