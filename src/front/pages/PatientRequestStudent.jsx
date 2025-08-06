@@ -7,6 +7,7 @@ const PatientRequestStudent = () => {
   const [requestStatus, setRequestStatus] = useState(null);
   const [requestedStudentId, setRequestedStudentId] = useState(null);
   const [professionalId, setProfessionalId] = useState(null);
+  const [loading, setLoading] = useState(true); // Nuevo estado para controlar carga
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -26,6 +27,8 @@ const PatientRequestStudent = () => {
         }
       } catch (err) {
         console.error(err);
+      } finally {
+        setLoading(false); // Se termina la carga
       }
     };
 
@@ -60,7 +63,6 @@ const PatientRequestStudent = () => {
       if (!response.ok) {
         setError(data.error || 'Error al enviar la solicitud.');
       } else {
-        setMessage('Solicitud enviada exitosamente al estudiante.');
         setRequestedStudentId(studentId);
         setRequestStatus('requested');
         setStudentId('');
@@ -89,6 +91,11 @@ const PatientRequestStudent = () => {
     }
   };
 
+  // 🔄 Mientras se obtiene el estado, muestra cargando
+  if (loading) {
+    return <div className="alert alert-secondary">Cargando estado de la solicitud...</div>;
+  }
+
   return (
     <div>
       <h2>Solicitar estudiante para llenar expediente</h2>
@@ -108,20 +115,25 @@ const PatientRequestStudent = () => {
             />
           </div>
           <button type="submit" className="btn btn-primary">Enviar solicitud</button>
+
+          {error && <div className="alert alert-danger mt-3">{error}</div>}
         </form>
       ) : (
         <div className="alert alert-info mt-3">
-          Solicitud enviada al estudiante con ID: <strong>{requestedStudentId}</strong>.<br />
-          A la espera de aprobación por parte del profesional (ID: <strong>{professionalId}</strong>).
+          Solicitud activa al estudiante con ID: <strong>{requestedStudentId}</strong>.<br />
+          A la espera de aprobación del profesional (ID: <strong>{professionalId}</strong>).
           <br />
-          <button className="btn btn-warning mt-2" onClick={handleCancelRequest}>
+          <button className="btn btn-warning mt-3" onClick={handleCancelRequest}>
             Cancelar solicitud
           </button>
+          {error && <div className="alert alert-danger mt-3">{error}</div>}
+          {message && <div className="alert alert-success mt-3">{message}</div>}
         </div>
       )}
 
-      {message && <div className="alert alert-success mt-3">{message}</div>}
-      {error && <div className="alert alert-danger mt-3">{error}</div>}
+      {message && requestStatus !== 'requested' && (
+        <div className="alert alert-success mt-3">{message}</div>
+      )}
     </div>
   );
 };

@@ -9,7 +9,7 @@ export const Home = () => {
     >
       {/* Header */}
       <header className="py-2 text-center">
-        <h1 className="h5 mb-1">Ecosistema Digital</h1>
+        <h1 className="h5 mb-1">Ecosistema Digital para Atención en Salud</h1>
         <p className="small mb-0">Gestión de Expedientes Médicos</p>
       </header>
 
@@ -26,7 +26,7 @@ export const Home = () => {
             <Link to="/academic-info" className="text-decoration-none text-white">
               <div className="card h-100 text-white bg-dark border-light">
                 <div className="card-body p-2">
-                  <h6 className="card-title mb-1">Atención Antecedentes</h6>
+                  <h6 className="card-title mb-1">Antecedentes del Paciente</h6>
                   <p className="card-text small mb-0">Academia</p>
                 </div>
               </div>
@@ -37,8 +37,8 @@ export const Home = () => {
             <Link to="/professional-info" className="text-decoration-none text-white">
               <div className="card h-100 text-white bg-dark border-light">
                 <div className="card-body p-2">
-                  <h6 className="card-title mb-1">Atención de la Salud</h6>
-                  <p className="card-text small mb-0">Profesional</p>
+                  <h6 className="card-title mb-1">Consulta en Salud</h6>
+                  <p className="card-text small mb-0">Profesional en Salud</p>
                 </div>
               </div>
             </Link>
@@ -49,7 +49,7 @@ export const Home = () => {
               <div className="card h-100 text-white bg-dark border-light">
                 <div className="card-body p-2">
                   <h6 className="card-title mb-1">Atención Multidisciplinaria</h6>
-                  <p className="card-text small mb-0">Equipo de Salud</p>
+                  <p className="card-text small mb-0">Equipo de Profesionales en Salud</p>
                 </div>
               </div>
             </Link>
