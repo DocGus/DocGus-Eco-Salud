@@ -35,13 +35,15 @@ jobs:
 
       - name: Run migrations inside web container
         run: |
-          docker compose -f docker-compose.test.yml run --rm web flask db upgrade || true
+          # Ejecutar migraciones en el contenedor del servicio ya levantado
+          docker compose -f docker-compose.test.yml exec -T web flask db upgrade || true
 
       - name: Run pytest inside web container
         id: run_tests
         run: |
           set -o pipefail
-          docker compose -f docker-compose.test.yml run --rm web pytest -q 2>&1 | tee pytest.log
+          # Ejecutar pytest dentro del contenedor del servicio en ejecución (exec -T evita alocar TTY)
+          docker compose -f docker-compose.test.yml exec -T web pytest -q 2>&1 | tee pytest.log
           echo "pytest_exit_code=$?" > rc.txt
 
       - name: Upload pytest log
