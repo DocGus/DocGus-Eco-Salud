@@ -27,7 +27,8 @@ def db_conn():
     host = parts.hostname
     port = parts.port or 5432
 
-    conn = psycopg2.connect(dbname=dbname, user=user, password=password, host=host, port=port)
+    conn = psycopg2.connect(dbname=dbname, user=user,
+                            password=password, host=host, port=port)
     conn.autocommit = True
 
     yield {'available': True, 'conn': conn}
@@ -42,14 +43,18 @@ def db_conn():
             );
         """)
         # eliminar backgrounds asociados
-        for t in ['non_pathological_background','pathological_background','family_background','gynecological_background']:
-            cur.execute(f"DELETE FROM {t} WHERE medical_file_id IN (SELECT id FROM medical_file WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'pat%'));")
+        for t in ['non_pathological_background', 'pathological_background', 'family_background', 'gynecological_background']:
+            cur.execute(
+                f"DELETE FROM {t} WHERE medical_file_id IN (SELECT id FROM medical_file WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'pat%'));")
         # eliminar medical_file
-        cur.execute("DELETE FROM medical_file WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'pat%');")
+        cur.execute(
+            "DELETE FROM medical_file WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'pat%');")
         # eliminar professional_student_data for stud/prof
-        cur.execute("DELETE FROM professional_student_data WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'prof%' OR email LIKE 'stud%');")
+        cur.execute(
+            "DELETE FROM professional_student_data WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'prof%' OR email LIKE 'stud%');")
         # eliminar users
-        cur.execute("DELETE FROM users WHERE email LIKE 'adm%' OR email LIKE 'prof%' OR email LIKE 'stud%' OR email LIKE 'pat%';")
+        cur.execute(
+            "DELETE FROM users WHERE email LIKE 'adm%' OR email LIKE 'prof%' OR email LIKE 'stud%' OR email LIKE 'pat%';")
         conn.commit()
     except Exception:
         pass

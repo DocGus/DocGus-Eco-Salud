@@ -158,11 +158,13 @@ def test_full_cycle(db_conn):
         conn = db_conn['conn']
         cur = conn.cursor()
         # comprobar non_pathological_background existe para este medical_file
-        cur.execute("SELECT address FROM non_pathological_background WHERE medical_file_id = %s", (medical_file_id,))
+        cur.execute(
+            "SELECT address FROM non_pathological_background WHERE medical_file_id = %s", (medical_file_id,))
         row = cur.fetchone()
         assert row is not None and 'Calle test' in row[0]
 
         # comprobar snapshot existe
-        cur.execute("SELECT url FROM medical_file_snapshot WHERE medical_file_id = %s", (medical_file_id,))
+        cur.execute(
+            "SELECT url FROM medical_file_snapshot WHERE medical_file_id = %s", (medical_file_id,))
         row = cur.fetchone()
         assert row is not None and 'snap.png' in row[0]
