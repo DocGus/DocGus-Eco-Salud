@@ -7,8 +7,9 @@ const PatientRequestStudent = () => {
   const [requestStatus, setRequestStatus] = useState(null);
   const [requestedStudentId, setRequestedStudentId] = useState(null);
   const [professionalId, setProfessionalId] = useState(null);
-  const [loading, setLoading] = useState(true); // Nuevo estado para controlar carga
+  const [loading, setLoading] = useState(true);
 
+  // 🔄 Obtener estado actual al cargar
   useEffect(() => {
     const fetchStatus = async () => {
       try {
@@ -28,13 +29,14 @@ const PatientRequestStudent = () => {
       } catch (err) {
         console.error(err);
       } finally {
-        setLoading(false); // Se termina la carga
+        setLoading(false);
       }
     };
 
     fetchStatus();
   }, []);
 
+  // ✅ Enviar solicitud
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage(null);
@@ -66,12 +68,14 @@ const PatientRequestStudent = () => {
         setRequestedStudentId(studentId);
         setRequestStatus('requested');
         setStudentId('');
+        setMessage(`Solicitud enviada al estudiante con ID: ${studentId}`);
       }
     } catch (err) {
       setError('Error al conectar con el servidor.');
     }
   };
 
+  // ❌ Cancelar solicitud
   const handleCancelRequest = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -85,13 +89,13 @@ const PatientRequestStudent = () => {
       if (!response.ok) throw new Error('No se pudo cancelar la solicitud');
       setRequestStatus(null);
       setRequestedStudentId(null);
-      setMessage('Solicitud cancelada.');
+      setProfessionalId(null);
+      setMessage('Solicitud cancelada correctamente.');
     } catch (err) {
       setError('Error al cancelar la solicitud.');
     }
   };
 
-  // 🔄 Mientras se obtiene el estado, muestra cargando
   if (loading) {
     return <div className="alert alert-secondary">Cargando estado de la solicitud...</div>;
   }
@@ -101,23 +105,26 @@ const PatientRequestStudent = () => {
       <h2>Solicitar estudiante para llenar expediente</h2>
 
       {requestStatus !== 'requested' ? (
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label htmlFor="studentId" className="form-label">ID del Estudiante</label>
-            <input
-              type="number"
-              id="studentId"
-              className="form-control"
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              required
-              min="1"
-            />
-          </div>
-          <button type="submit" className="btn btn-primary">Enviar solicitud</button>
+        <>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label htmlFor="studentId" className="form-label">ID del Estudiante</label>
+              <input
+                type="number"
+                id="studentId"
+                className="form-control"
+                value={studentId}
+                onChange={(e) => setStudentId(e.target.value)}
+                required
+                min="1"
+              />
+            </div>
+            <button type="submit" className="btn btn-primary">Enviar solicitud</button>
+          </form>
 
           {error && <div className="alert alert-danger mt-3">{error}</div>}
-        </form>
+          {message && <div className="alert alert-success mt-3">{message}</div>}
+        </>
       ) : (
         <div className="alert alert-info mt-3">
           Solicitud activa al estudiante con ID: <strong>{requestedStudentId}</strong>.<br />
@@ -129,10 +136,6 @@ const PatientRequestStudent = () => {
           {error && <div className="alert alert-danger mt-3">{error}</div>}
           {message && <div className="alert alert-success mt-3">{message}</div>}
         </div>
-      )}
-
-      {message && requestStatus !== 'requested' && (
-        <div className="alert alert-success mt-3">{message}</div>
       )}
     </div>
   );

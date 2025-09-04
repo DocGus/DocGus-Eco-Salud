@@ -1,0 +1,49 @@
+name: Smoke test (script)
+
+on:
+  push:
+    branches: [main, segunda-rama-detalles]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Start backend (SQLite, development)
+        run: |
+          export FLASK_DEBUG=1
+          # Start the Flask app in background and capture logs
+          nohup python src/app.py > server.log 2>&1 &
+          echo "Waiting for backend to be ready..."
+          for i in $(seq 1 30); do
+            if curl -sS http://127.0.0.1:3001/api > /dev/null; then
+              echo "Backend ready"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run smoke test script
+        run: |
+          python tmp/smoke_test.py
+
+      - name: Upload server log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-log
+          path: server.log

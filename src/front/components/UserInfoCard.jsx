@@ -1,5 +1,12 @@
 import React from "react";
-import { FaUser, FaEnvelope, FaIdCard, FaShieldAlt, FaCheckCircle, FaClock } from "react-icons/fa";
+import {
+  FaUser,
+  FaEnvelope,
+  FaIdCard,
+  FaShieldAlt,
+  FaCheckCircle,
+  FaClock
+} from "react-icons/fa";
 
 const UserInfoCard = ({ user }) => {
   if (!user) return <p>Cargando datos del usuario...</p>;
@@ -27,10 +34,38 @@ const UserInfoCard = ({ user }) => {
 
   const translatedRole = roleLabels[role] || role;
 
-  // Badge por estado
-  const statusBadge = status === "active"
-    ? <span className="badge bg-success"><FaCheckCircle className="me-1" /> Activo</span>
-    : <span className="badge bg-warning text-dark"><FaClock className="me-1" /> Pendiente</span>;
+  // Badge por estado (status)
+  let statusBadge;
+  switch (status) {
+    case "approved":
+      statusBadge = (
+        <span className="badge bg-success">
+          <FaCheckCircle className="me-1" /> Aprobado
+        </span>
+      );
+      break;
+    case "pre_approved":
+      statusBadge = (
+        <span className="badge bg-warning text-dark">
+          <FaClock className="me-1" /> Pre-aprobado
+        </span>
+      );
+      break;
+    case "inactive":
+      statusBadge = (
+        <span className="badge bg-secondary">
+          <FaClock className="me-1" /> Inactivo
+        </span>
+      );
+      break;
+    default:
+      statusBadge = (
+        <span className="badge bg-light text-dark">
+          <FaClock className="me-1" /> Desconocido
+        </span>
+      );
+      break;
+  }
 
   // Colores de fondo para cada rol
   const roleColorMap = {

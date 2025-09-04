@@ -1,0 +1,20 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt requirements.txt
+COPY requirements-test.txt requirements-test.txt
+RUN pip install --no-cache-dir -r requirements.txt || true
+RUN pip install --no-cache-dir -r requirements-test.txt
+
+COPY . /app
+
+ENV FLASK_APP=src/app.py
+ENV FLASK_ENV=development
+
+CMD ["python", "src/app.py"]

@@ -741,3 +741,42 @@ def confirm_file(medical_file_id):
 
     db.session.commit()
     return jsonify({"message": f"Expediente {action} correctamente."}), 200
+
+
+
+
+
+@api.route('/patient/student_request_status', methods=['GET'])
+@patient_required
+def get_student_request_status():
+    patient_id = get_jwt_identity()
+    medical_file = MedicalFile.query.filter_by(user_id=patient_id).first()
+
+    if not medical_file or not medical_file.patient_requested_student_id:
+        return jsonify({"status": "none"}), 200
+
+    return jsonify({
+        "status": "requested",
+        "student_id": medical_file.patient_requested_student_id,
+        "professional_id": medical_file.selected_student_id  # puede ser None
+    }), 200
+
+
+
+
+
+
+@api.route('/patient/cancel_student_request', methods=['DELETE'])
+@patient_required
+def cancel_student_request():
+    patient_id = get_jwt_identity()
+    medical_file = MedicalFile.query.filter_by(user_id=patient_id).first()
+
+    if not medical_file or not medical_file.patient_requested_student_id:
+        return jsonify({"error": "No tienes una solicitud activa"}), 400
+
+    medical_file.patient_requested_student_id = None
+    medical_file.patient_requested_student_at = None
+
+    db.session.commit()
+    return jsonify({"message": "Solicitud cancelada correctamente"}), 200
