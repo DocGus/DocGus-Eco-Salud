@@ -72,13 +72,14 @@ const StudentFilesReview = () => {
                 <td>{file.student_name}</td>
                 <td>
                   {file.snapshots && file.snapshots.length > 0 ? (
-            <a href={file.snapshots && file.snapshots[0] ? file.snapshots[0].url : '#'} target="_blank" rel="noreferrer">
-              {file.snapshots && file.snapshots[0] ? (
+            <a href={file.snapshots?.[0]?.url || '#'} target="_blank" rel="noreferrer">
+              {file.snapshots?.[0] ? (
                 <img
-                  src={file.snapshots[0].url}
-                  alt="Thumb"
+                  src={file.snapshots?.[0]?.url}
+                  alt={`snapshot-${file.id}`}
+                  loading="lazy"
                   style={{ width: 80, height: 80, objectFit: 'cover' }}
-                  onError={(e) => { e.target.src = `${backendUrl}/assets/preview.png`; }}
+                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `${backendUrl}/assets/preview.png`; }}
                 />
               ) : 'Ver'}
             </a>

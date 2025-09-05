@@ -74,15 +74,16 @@ const ConfirmFile = () => {
         <>
           <p><strong>Status:</strong> {fileStatus}</p>
 
-          {(fileStatus === "approved" || fileStatus === "confirmed") && snapshots.length > 0 && (
+          {(fileStatus === "approved" || fileStatus === "confirmed") && snapshots?.length > 0 && (
             <>
               {/* Mostrar primera snapshot como imagen con placeholder */}
               <div className="mb-3">
                 <img
-                  src={snapshots[0].url}
-                  alt="Snapshot"
+                  src={snapshots?.[0]?.url}
+                  alt="snapshot"
+                  loading="lazy"
                   style={{ maxWidth: '100%', maxHeight: 400 }}
-                  onError={(e) => { e.target.onerror = null; e.target.src = `${backendUrl}/assets/preview.png`; }}
+                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `${backendUrl}/assets/preview.png`; }}
                 />
               </div>
 
@@ -108,12 +109,8 @@ const ConfirmFile = () => {
                   </button>
                 </div>
               )}
-                          <img
-                            src={snapshots[0].url}
-                            alt="Snapshot"
-                            style={{ maxWidth: '100%', maxHeight: 250 }}
-                            onError={(e) => { e.target.src = `${backendUrl}/assets/preview.png`; }}
-                          />
+              {/* (extra image removed - kept single preview above) */}
+            </>
           )}
 
           {fileStatus !== "approved" && fileStatus !== "confirmed" && (
