@@ -76,14 +76,15 @@ const ConfirmFile = () => {
 
           {(fileStatus === "approved" || fileStatus === "confirmed") && snapshots.length > 0 && (
             <>
-              <a
-                href={snapshots[0].url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-info mb-3"
-              >
-                Ver Snapshot
-              </a>
+              {/* Mostrar primera snapshot como imagen con placeholder */}
+              <div className="mb-3">
+                <img
+                  src={snapshots[0].url}
+                  alt="Snapshot"
+                  style={{ maxWidth: '100%', maxHeight: 400 }}
+                  onError={(e) => { e.target.onerror = null; e.target.src = `${backendUrl}/assets/preview.png`; }}
+                />
+              </div>
 
               {fileStatus === "approved" && (
                 <div>
@@ -107,7 +108,12 @@ const ConfirmFile = () => {
                   </button>
                 </div>
               )}
-            </>
+                          <img
+                            src={snapshots[0].url}
+                            alt="Snapshot"
+                            style={{ maxWidth: '100%', maxHeight: 250 }}
+                            onError={(e) => { e.target.src = `${backendUrl}/assets/preview.png`; }}
+                          />
           )}
 
           {fileStatus !== "approved" && fileStatus !== "confirmed" && (
