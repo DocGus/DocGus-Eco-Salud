@@ -1,16 +1,24 @@
 import React, { useEffect, useState } from "react";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+// Pantalla para pacientes: confirmar o solicitar cambios al expediente aprobado.
+// Endpoints:
+// - GET  /api/private                         -> obtiene usuario autenticado y su medical_file_id
+// - GET  /api/medical_file/:id                -> estado actual del expediente
+// - GET  /api/patient/snapshots/:id           -> snapshots visibles al paciente
+// - PUT  /api/patient/confirm_file/:id        -> { action: "confirm"|"reject", comment?: string }
+
+const backendUrl = import.meta.env.VITE_BACKEND_URL; // Base de API desde variables Vite
 
 const ConfirmFile = () => {
-  const [fileStatus, setFileStatus] = useState("");
-  const [medicalFileId, setMedicalFileId] = useState(null);
-  const [snapshots, setSnapshots] = useState([]);
-  const [comment, setComment] = useState("");
-  const [error, setError] = useState(null);
+  const [fileStatus, setFileStatus] = useState(""); // approved | confirmed | otros
+  const [medicalFileId, setMedicalFileId] = useState(null); // id del expediente del paciente
+  const [snapshots, setSnapshots] = useState([]); // snapshots para confirmación visual
+  const [comment, setComment] = useState(""); // comentario opcional al rechazar
+  const [error, setError] = useState(null); // error general de carga o permisos
 
   useEffect(() => {
     const fetchFileStatus = async () => {
+      // Carga el expediente del usuario autenticado y sus snapshots
       try {
         const token = localStorage.getItem("token");
 
@@ -47,6 +55,7 @@ const ConfirmFile = () => {
   }, []);
 
   const handleAction = async (action) => {
+    // Permite al paciente confirmar o solicitar cambios sobre el expediente
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`${backendUrl}/api/patient/confirm_file/${medicalFileId}`, {
@@ -59,8 +68,22 @@ const ConfirmFile = () => {
       });
 
       if (!res.ok) throw new Error("Error en la acción.");
+      const result = await res.json();
+      if (result?.file_status) setFileStatus(result.file_status);
+      // Refrescar estado desde el backend para confirmar persistencia
+      try {
+        const token = localStorage.getItem("token");
+        const fileRes = await fetch(`${backendUrl}/api/medical_file/${medicalFileId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (fileRes.ok) {
+          const fileData = await fileRes.json();
+          setFileStatus(fileData.medical_file.file_status);
+        }
+      } catch (e) {
+        // noop: si falla el refresh, nos quedamos con el valor devuelto por el PUT
+      }
       alert(`Expediente ${action === "confirm" ? "confirmado" : "rechazado"} correctamente.`);
-      window.location.reload();
     } catch (err) {
       alert(err.message);
     }
@@ -76,7 +99,7 @@ const ConfirmFile = () => {
 
           {(fileStatus === "approved" || fileStatus === "confirmed") && snapshots?.length > 0 && (
             <>
-              {/* Mostrar primera snapshot como imagen con placeholder */}
+              {/* Muestra la primera snapshot como vista previa; fallback si no carga */}
               <div className="mb-3">
                 <img
                   src={snapshots?.[0]?.url}

@@ -2,7 +2,11 @@ import React, { useEffect, useState } from "react";
 import html2canvas from "html2canvas";
 import { useParams } from "react-router-dom";
 
+// Pantalla para que el estudiante llene antecedentes de un paciente y envíe a revisión.
+// Flujo: carga expediente -> completa formulario -> guarda antecedentes -> genera snapshot -> envía a revisión.
+
 const initialState = {
+  // Estructura base usada para inicializar y limpiar el formulario.
   patological_background: {
     personal_diseases: "",
     medications: "",
@@ -67,6 +71,8 @@ const initialState = {
   },
 };
 
+// Normaliza valores entrantes (del backend) contra un objeto de defaults.
+// - Conserva tipos (booleans) y evita undefined usando strings vacíos.
 const normalize = (data, defaults) => {
   const copy = { ...defaults };
   Object.keys(defaults).forEach((key) => {
@@ -81,10 +87,11 @@ const normalize = (data, defaults) => {
 };
 
 const BackGroundInterview = () => {
-  const { medicalFileId } = useParams();
-  const [form, setForm] = useState(initialState);
-  const [sentToReview, setSentToReview] = useState(false);
+  const { medicalFileId } = useParams(); // ID del expediente recibido por URL.
+  const [form, setForm] = useState(initialState); // Estado único con todas las secciones.
+  const [sentToReview, setSentToReview] = useState(false); // Flag para UX tras enviar a revisión.
 
+  // Maneja cambios de campos del formulario agrupados por sección.
   const handleChange = (e, section) => {
     const { name, value, type, checked } = e.target;
     const val = type === "checkbox" ? checked : value;
@@ -98,6 +105,7 @@ const BackGroundInterview = () => {
     }));
   };
 
+  // Envío principal: guarda antecedentes y sube snapshot; deja expediente en "review".
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -107,12 +115,15 @@ const BackGroundInterview = () => {
       return;
     }
 
+    // Cuerpo enviado al backend para persistir antecedentes en la historia clínica.
     const newFormData = {
       ...form,
       medical_file_id: medicalFileId,
     };
 
     try {
+      // 1) Persistir antecedentes en el backend
+      // Endpoint: POST /api/backgrounds (requiere JWT)
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/backgrounds`, {
         method: "POST",
         headers: {
@@ -129,10 +140,13 @@ const BackGroundInterview = () => {
         return;
       }
 
+      // 2) Generar snapshot visual del formulario usando html2canvas
       const element = document.querySelector("form");
       const canvas = await html2canvas(element);
-      const dataUrl = canvas.toDataURL("image/png");
+      const dataUrl = canvas.toDataURL("image/png"); // Data URL base64 (PNG)
 
+      // 3) Subir snapshot para dejar constancia y permitir revisión visual
+      // Endpoint: POST /api/upload_snapshot/:medicalFileId (rol: student)
       const snapshotRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/upload_snapshot/${medicalFileId}`, {
         method: "POST",
         headers: {
@@ -149,6 +163,7 @@ const BackGroundInterview = () => {
         return;
       }
 
+      // UX: feedback positivo y reseteo del formulario
       alert("Antecedentes guardados y expediente enviado a revisión ✅");
       setSentToReview(true);
       setForm(initialState);
@@ -159,6 +174,7 @@ const BackGroundInterview = () => {
     }
   };
 
+  // Carga inicial del expediente para prellenar campos con valores existentes.
   useEffect(() => {
     const fetchMedicalFile = async () => {
       try {
@@ -173,6 +189,7 @@ const BackGroundInterview = () => {
           return;
         }
 
+        // Crear una copia limpia del estado inicial y normalizar por sección.
         const newForm = { ...initialState };
 
         if (data.medical_file.non_pathological_background) {
@@ -190,7 +207,7 @@ const BackGroundInterview = () => {
 
         setForm(newForm);
 
-        // ✅ Verificar si ya está en revisión o aprobado
+        // Si ya está en revisión o aprobado/confirmado, reflejarlo en UI.
         if (["review", "approved", "confirmed"].includes(data.medical_file.file_status)) {
           setSentToReview(true);
         }
@@ -202,10 +219,12 @@ const BackGroundInterview = () => {
     fetchMedicalFile();
   }, [medicalFileId]);
 
+  // Si ya se envió a revisión, mostrar aviso y evitar reenvíos.
   if (sentToReview) {
     return <p>✅ Expediente enviado a revisión. Esperando respuesta del profesional.</p>;
   }
 
+  // Render del formulario: campos agrupados por categorías clínicas.
   return (
     <form onSubmit={handleSubmit} className="row p-4 rounded shadow-md max-w-5xl mx-auto" data-bs-theme="dark">
       <h2 className="text-2xl font-bold mb-4">Antecedentes Médicos del Paciente</h2>

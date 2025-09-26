@@ -1,5 +1,16 @@
 """
-This module takes care of starting the API Server, Loading the DB and Adding the endpoints
+API de DocGus-Eco-Salud
+
+Este módulo define los endpoints principales del backend (Flask) y organiza
+las rutas por rol (admin, student, professional, patient). También incluye la
+gestión de snapshots de expedientes y el servicio de archivos locales.
+
+Notas clave:
+- Roles: se usan decoradores (p. ej., @student_required) para proteger rutas.
+- Estados de expediente (FileStatus): empty → progress → review → approved → confirmed.
+- Snapshots: pueden almacenarse localmente (./uploads, servidos en /api/uploads)
+    o en Cloudinary (si está configurado). Las respuestas devuelven URLs absolutas.
+- Prefijo del blueprint: todas las rutas definidas aquí se sirven bajo /api/.
 """
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory
@@ -29,19 +40,17 @@ if not os.path.exists(UPLOAD_FOLDER):
     except Exception:
         pass
 
-
-@api.route('/uploads/<path:filename>', methods=['GET'])
-def serve_upload(filename):
-    # Servir archivos guardados localmente en ./uploads
-    try:
-        return send_from_directory(UPLOAD_FOLDER, filename)
-    except Exception:
-        return jsonify({"error": "File not found"}), 404
+# 00 EPT servir archivos subidos localmente
 
 
 @api.route('/uploads/<path:filename>', methods=['GET'])
 def serve_upload(filename):
-    # permitir CORS desde cualquier origen para facilitar consumo desde frontend
+    """Sirve archivos guardados localmente en ./uploads.
+
+    Ruta pública para exponer snapshots guardados como ficheros locales.
+    Importante: esta ruta queda publicada como /api/uploads/<filename> por
+    el prefijo del blueprint.
+    """
     try:
         return send_from_directory(UPLOAD_FOLDER, filename)
     except Exception:
@@ -51,6 +60,11 @@ def serve_upload(filename):
 
 
 def role_required(role_name):
+    """Crea un decorador que exige JWT y un rol específico.
+
+    Uso: @role_required("student") → verifica que el usuario JWT tenga ese rol.
+    Lanza APIException 403 si el rol no coincide.
+    """
     def decorator(fn):
         @wraps(fn)
         @jwt_required()
@@ -73,6 +87,12 @@ patient_required = role_required("patient")
 
 @api.route('/register', methods=['POST'])
 def register_user():
+    """Registra un usuario nuevo.
+
+    - Requiere campos básicos (nombre, apellido, birth_day, role, email, password).
+    - Si role ∈ {student, professional} registra también datos académicos.
+    - Si role = patient crea un MedicalFile con estado empty.
+    """
     data = request.get_json()
 
     required_fields = ["first_name", "first_surname",
@@ -146,6 +166,7 @@ def register_user():
 # 02 EPT para login
 @api.route('/login', methods=['POST'])
 def login():
+    """Autentica al usuario y devuelve un JWT de corta duración."""
     data = request.get_json()
     email = data.get("email")
     password = data.get("password")
@@ -164,6 +185,12 @@ def login():
 @api.route('/private', methods=['GET'])
 @jwt_required()
 def private():
+    """Devuelve datos del usuario autenticado y referencias útiles.
+
+    - Incluye medical_file_id si existe un expediente asociado.
+    - Incluye requested_professional_id (para estudiantes) y
+      patient_requested_student_id (para pacientes) si aplican.
+    """
     current_user = User.query.get(get_jwt_identity())
 
     # Buscar expediente médico (MedicalFile) del usuario
@@ -201,6 +228,7 @@ def private():
 @api.route('/users', methods=['GET'])
 @admin_required
 def get_users():
+    """Lista todos los usuarios (sólo admin)."""
     users = User.query.all()
     return jsonify([user.serialize() for user in users]), 200
 
@@ -210,6 +238,10 @@ def get_users():
 @api.route('/validate_professional/<int:user_id>', methods=['POST'])
 @admin_required
 def validate_professional(user_id):
+    """Valida a un profesional (admin).
+
+    Cambia el estado del profesional a approved y registra validador/fecha.
+    """
     user = User.query.get(user_id)
     if not user or user.role != UserRole.professional or user.status != UserStatus.pre_approved:
         return jsonify({"error": "Usuario no válido o ya aprobado"}), 400
@@ -231,6 +263,7 @@ def validate_professional(user_id):
 @api.route('/request_student_validation/<int:professional_id>', methods=['POST'])
 @student_required
 def request_professional_validation(professional_id):
+    """El estudiante solicita validación a un profesional aprobado."""
     student = User.query.get(get_jwt_identity())
 
     if student.status != UserStatus.pre_approved:
@@ -257,6 +290,7 @@ def request_professional_validation(professional_id):
 @api.route('/professional/validate_student/<int:student_id>', methods=['PUT'])
 @professional_required
 def validate_student(student_id):
+    """El profesional aprueba/rechaza a un estudiante que lo solicitó."""
     professional = User.query.get(get_jwt_identity())
     student = User.query.get(student_id)
 
@@ -290,6 +324,7 @@ def validate_student(student_id):
 @api.route('/patient/request_student_validation/<int:student_id>', methods=['POST'])
 @patient_required
 def patient_request_student(student_id):
+    """El paciente solicita a un estudiante aprobado que llene su expediente."""
     patient = User.query.get(get_jwt_identity())
     student = User.query.get(student_id)
 
@@ -311,9 +346,14 @@ def patient_request_student(student_id):
     return jsonify({"message": "Solicitud enviada al estudiante"}), 200
 
 
+# 08.1 EPT para que el estudiante apruebe o rechace al paciente
 @api.route('/student/validate_patient/<int:patient_id>', methods=['PUT'])
 @student_required
 def validate_patient(patient_id):
+    """El estudiante aprueba/rechaza la solicitud del paciente.
+
+    Si aprueba: asigna estudiante, mueve el expediente a progress y aprueba paciente.
+    """
     student = User.query.get(get_jwt_identity())
     patient = User.query.get(patient_id)
 
@@ -359,6 +399,7 @@ def validate_patient(patient_id):
 @api.route('/student/patient_requests', methods=['GET'])
 @student_required
 def get_patient_requests():
+    """Lista solicitudes de pacientes dirigidas al estudiante autenticado."""
     student_id = get_jwt_identity()
     requests = MedicalFile.query.filter_by(
         patient_requested_student_id=student_id).all()
@@ -380,6 +421,7 @@ def get_patient_requests():
 @api.route('/professional/student_requests', methods=['GET'])
 @professional_required
 def get_student_requests():
+    """Lista solicitudes de estudiantes al profesional autenticado."""
     professional_id = get_jwt_identity()
     student_requests = ProfessionalStudentData.query.filter_by(
         requested_professional_id=professional_id).all()
@@ -404,6 +446,7 @@ def get_student_requests():
 @api.route('/medical_file/<int:file_id>', methods=['GET'])
 @jwt_required()
 def get_medical_file(file_id):
+    """Obtiene un expediente médico por id con datos básicos del paciente."""
     medical_file = MedicalFile.query.get(file_id)
     if not medical_file:
         return jsonify({"error": "Expediente no encontrado"}), 404
@@ -432,6 +475,11 @@ def get_medical_file(file_id):
 @api.route('/api/backgrounds', methods=['POST'])
 @jwt_required()
 def save_backgrounds():
+    """Guarda/actualiza antecedentes en un expediente existente (sin cambiar estado).
+
+    Nota: esta ruta tiene prefijo "/api" en su path literal dentro del blueprint,
+    por lo que se expone como "/api/api/backgrounds". Se mantiene por compatibilidad.
+    """
     data = request.get_json()
 
     medical_file_id = data.get("medical_file_id")
@@ -498,6 +546,7 @@ def save_backgrounds():
 @api.route('/student/mark_review/<int:medical_file_id>', methods=['PUT'])
 @student_required
 def mark_file_review(medical_file_id):
+    """Marca un expediente como 'review' (usado por estudiante)."""
     medical_file = MedicalFile.query.get(medical_file_id)
     if not medical_file:
         return jsonify({"error": "Expediente no encontrado"}), 404
@@ -514,10 +563,13 @@ def mark_file_review(medical_file_id):
 @api.route('/upload_snapshot/<int:file_id>', methods=['POST'])
 @student_required
 def upload_snapshot(file_id):
-    """
-    Endpoint para subir un snapshot (imagen o PDF en base64 o URL) del expediente llenado por el estudiante.
-    Guarda la URL (o dataURL base64) en la tabla MedicalFileSnapshot
-    y cambia el estado del expediente a 'review'.
+    """Sube un snapshot del expediente y pasa el archivo a estado 'review'.
+
+    Entrada JSON: { "snapshot_url": string }
+    - Si es data URL (base64), se guarda localmente en ./uploads y se expone como
+      URL absoluta en /api/uploads/<file>.
+    - Si hay Cloudinary configurado, intenta subir y usar secure_url.
+    - Tests pueden forzar URL con cabecera X-MOCK-CLOUDINARY-URL.
     """
     try:
         medical_file = MedicalFile.query.get(file_id)
@@ -542,18 +594,20 @@ def upload_snapshot(file_id):
             cloud_url = mock_cloud_url
             cloudinary_used = True
         else:
-            # Si es un data URL (base64), guardarlo en ./uploads y exponer /uploads/<file>
+            # Si es un data URL (base64), guardarlo en ./uploads y exponer /api/uploads/<file>
             if isinstance(snapshot_url, str) and snapshot_url.startswith('data:'):
                 try:
                     header, encoded = snapshot_url.split(',', 1)
-                    mime = header.split(';')[0].split(':')[1] if ';' in header else header.split(':')[1]
+                    mime = header.split(';')[0].split(
+                        ':')[1] if ';' in header else header.split(':')[1]
                     ext = mime.split('/')[-1] if '/' in mime else 'png'
                     filename = f"{uuid.uuid4().hex}.{secure_filename(ext)}"
                     file_path = os.path.join(UPLOAD_FOLDER, filename)
                     with open(file_path, 'wb') as fh:
                         fh.write(base64.b64decode(encoded))
                     host = request.host_url.rstrip('/')
-                    cloud_url = f"{host}/uploads/{filename}"
+                    # Importante: incluir prefijo /api por el Blueprint
+                    cloud_url = f"{host}/api/uploads/{filename}"
                 except Exception as e:
                     print(f"Failed saving data URL locally: {e}")
             # Si Cloudinary está configurado, intentar subir y preferir secure_url
@@ -563,8 +617,10 @@ def upload_snapshot(file_id):
                     import cloudinary.uploader
                     res = cloudinary.uploader.upload(snapshot_url)
                     if isinstance(res, dict):
-                        cloud_url = res.get('secure_url') or res.get('url') or cloud_url
-                        cloudinary_used = bool(res.get('secure_url') or res.get('url'))
+                        cloud_url = res.get('secure_url') or res.get(
+                            'url') or cloud_url
+                        cloudinary_used = bool(
+                            res.get('secure_url') or res.get('url'))
                 except Exception as ce:
                     print(f"Cloudinary upload failed: {ce}")
 
@@ -596,6 +652,12 @@ def upload_snapshot(file_id):
 @api.route('/professional/review_file/<int:medical_file_id>', methods=['PUT'])
 @professional_required
 def review_file(medical_file_id):
+    """El profesional aprueba o regresa a progreso un expediente en revisión.
+
+    Entrada JSON: { action: "approve" | "reject", comment?: string }
+    - approve → file_status=approved; limpia rejection_comment
+    - reject  → file_status=progress; guarda rejection_comment
+    """
     data = request.get_json()
     action = data.get("action")
     comment = data.get("comment", "")  # Por defecto vacío si no mandan
@@ -621,7 +683,10 @@ def review_file(medical_file_id):
         return jsonify({"error": "Acción no válida. Usa 'approve' o 'reject'"}), 400
 
     db.session.commit()
-    return jsonify({"message": f"Expediente {action} correctamente."}), 200
+    return jsonify({
+        "message": f"Expediente {action} correctamente.",
+        "file_status": medical_file.file_status.value if medical_file.file_status else None
+    }), 200
 
 # 16 EPT para que el estudiante obtenga sus pacientes asignados
 
@@ -629,6 +694,7 @@ def review_file(medical_file_id):
 @api.route('/student/assigned_patients', methods=['GET'])
 @student_required
 def get_assigned_patients():
+    """Lista pacientes asignados a un estudiante con estado del expediente."""
     student_id = get_jwt_identity()
     files = MedicalFile.query.filter_by(selected_student_id=student_id).all()
 
@@ -650,6 +716,7 @@ def get_assigned_patients():
 @api.route('/backgrounds', methods=['POST'])
 @student_required
 def create_backgrounds():
+    """Crea registros de antecedentes y mueve expediente a 'review'."""
     data = request.get_json()
 
     medical_file_id = data.get("medical_file_id")
@@ -759,6 +826,10 @@ def create_backgrounds():
 @api.route('/professional/review_files', methods=['GET'])
 @professional_required
 def get_review_files():
+    """Lista expedientes en estado 'review' de estudiantes aprobados por el profesional.
+
+    Nota: snapshots se devuelven como lista de strings (URLs).
+    """
     professional_id = get_jwt_identity()
 
     # Buscar estudiantes aprobados por este profesional
@@ -794,6 +865,7 @@ def get_review_files():
 @api.route('/professional/snapshots/<int:medical_file_id>', methods=['GET'])
 @professional_required
 def get_snapshots(medical_file_id):
+    """Lista snapshots de un expediente para el profesional."""
     medical_file = MedicalFile.query.get(medical_file_id)
     if not medical_file:
         return jsonify({"error": "Expediente no encontrado"}), 404
@@ -812,10 +884,13 @@ def get_snapshots(medical_file_id):
     ]
     return jsonify(result), 200
 
+# 20 EPT para que el paciente obtenga snapshots del expediente propio
+
 
 @api.route('/patient/snapshots/<int:medical_file_id>', methods=['GET'])
 @patient_required
 def get_patient_snapshots(medical_file_id):
+    """Lista snapshots visibles al paciente dueño del expediente."""
     medical_file = MedicalFile.query.get(medical_file_id)
     if not medical_file:
         return jsonify({"error": "Expediente no encontrado"}), 404
@@ -838,11 +913,18 @@ def get_patient_snapshots(medical_file_id):
     ]
     return jsonify(result), 200
 
+# 21 EPT estado de la solicitud del paciente hacia un estudiante
+
 
 @api.route('/patient/student_request_status', methods=['GET'])
 @patient_required
 def get_student_request_status():
-    patient_id = get_jwt_identity()
+    """Estado de la solicitud del paciente hacia un estudiante (none/requested)."""
+    patient_id_str = get_jwt_identity()
+    try:
+        patient_id = int(patient_id_str)
+    except Exception:
+        return jsonify({"error": "Identidad del paciente inválida"}), 400
     medical_file = MedicalFile.query.filter_by(user_id=patient_id).first()
 
     if not medical_file or not medical_file.patient_requested_student_id:
@@ -854,10 +936,13 @@ def get_student_request_status():
         "professional_id": medical_file.selected_student_id  # puede ser None
     }), 200
 
+# 22 EPT cancelar solicitud activa del paciente
+
 
 @api.route('/patient/cancel_student_request', methods=['DELETE'])
 @patient_required
 def cancel_student_request():
+    """Cancela la solicitud del paciente al estudiante (si está activa)."""
     patient_id = get_jwt_identity()
     medical_file = MedicalFile.query.filter_by(user_id=patient_id).first()
 
@@ -869,3 +954,57 @@ def cancel_student_request():
 
     db.session.commit()
     return jsonify({"message": "Solicitud cancelada correctamente"}), 200
+
+
+# 23 EPT confirmación del expediente por parte del paciente
+@api.route('/patient/confirm_file/<int:medical_file_id>', methods=['PUT'])
+@patient_required
+def patient_confirm_file(medical_file_id):
+    """El paciente confirma o solicita cambios sobre su expediente aprobado.
+
+    Entrada JSON: { action: "confirm" | "reject", comment?: string }
+    - confirm → file_status=confirmed; set confirmed_by_id/confirmed_at
+    - reject  → file_status=progress; set no_confirmed_by_id/no_confirmed_at y guarda comentario
+    """
+    # Asegurar que el id del JWT sea entero para comparaciones/assigns en DB
+    pid = get_jwt_identity()
+    try:
+        patient_id = int(pid)
+    except Exception:
+        return jsonify({"error": "Identidad del paciente inválida"}), 400
+
+    data = request.get_json() or {}
+    action = data.get("action")
+    comment = data.get("comment", "")
+
+    medical_file = MedicalFile.query.get(medical_file_id)
+    if not medical_file:
+        return jsonify({"error": "Expediente no encontrado"}), 404
+
+    # Validar propiedad del expediente
+    if medical_file.user_id != patient_id:
+        return jsonify({"error": "Acceso denegado"}), 403
+
+    if action == "confirm":
+        medical_file.file_status = FileStatus.confirmed
+        medical_file.confirmed_by_id = patient_id
+        medical_file.confirmed_at = datetime.utcnow()
+        # Limpiar posible comentario previo de rechazo (si existiera)
+        try:
+            medical_file.rejection_comment = None
+        except Exception:
+            pass
+    elif action == "reject":
+        medical_file.file_status = FileStatus.progress
+        medical_file.no_confirmed_by_id = patient_id
+        medical_file.no_confirmed_at = datetime.utcnow()
+        # Guardar el comentario del paciente solicitando cambios (si el campo existe)
+        try:
+            medical_file.rejection_comment = comment
+        except Exception:
+            pass
+    else:
+        return jsonify({"error": "Acción no válida. Usa 'confirm' o 'reject'"}), 400
+
+    db.session.commit()
+    return jsonify({"message": f"Expediente {action} correctamente."}), 200
