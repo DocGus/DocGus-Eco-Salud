@@ -36,7 +36,6 @@ const Login = () => {                                     // Define el component
       } else {                                            // Si la respuesta fue exitosa
         localStorage.setItem("token", data.token);        // Guarda el token en el almacenamiento local
         localStorage.setItem("user", JSON.stringify(data.user)); // Guarda el usuario como string
-        console.log("Usuario:", data.user);               // Muestra en consola el usuario autenticado
         setSuccess("Inicio de sesión exitoso. Redirigiendo..."); // Muestra mensaje de éxito
 
         setTimeout(() => {                                // Espera 2 segundos antes de redirigir
@@ -45,13 +44,13 @@ const Login = () => {                                     // Define el component
           }
           else if (data.user.role === "student") {
             navigate("/dashboard/student");               // Redirige al dashboard del estudiante
-          } 
+          }
           else if (data.user.role === "patient") {
             navigate("/dashboard/patient");               // Redirige al dashboard del paciente
-          } 
+          }
           else if (data.user.role === "professional") {
             navigate("/dashboard/professional");          // Redirige al dashboard del profesional
-          } 
+          }
           else {
             navigate("/");                                // Redirige al inicio si no hay coincidencia
           }
@@ -63,11 +62,9 @@ const Login = () => {                                     // Define el component
   };
 
   return (
-    <div className="container-fluid min-vh-100 d-flex align-items-center justify-content-center"
-         style={{ backgroundColor: "#800000", color: "#fff" }}>   {/* Contenedor de fondo completo con estilo */}
-      <div className="card p-4 w-100"
-           style={{ maxWidth: "500px", backgroundColor: "#343a40", border: "1px solid #fff" }}> {/* Tarjeta centrada */}
-        <h2 className="text-center text-white mb-4">Iniciar Sesión</h2> {/* Título del formulario */}
+    <div className="app-page d-flex align-items-center justify-content-center" data-bs-theme="dark">
+      <div className="card p-4 w-100 brand-form-card" style={{ maxWidth: "500px" }}>
+        <h2 className="text-center mb-4">Iniciar Sesión</h2>
 
         <form onSubmit={handleSubmit}>                    {/* Manejador de envío del formulario */}
           <div className="mb-3">
@@ -99,7 +96,7 @@ const Login = () => {                                     // Define el component
           {success && <div className="alert alert-success mt-3">{success}</div>}  {/* Muestra éxito si existe */}
 
           <div className="text-center mt-4">
-            <button type="submit" className="btn btn-light btn-lg text-dark w-100">Entrar</button> {/* Botón de envío */}
+            <button type="submit" className="btn btn-light btn-lg text-dark w-100">Entrar</button>
           </div>
         </form>
       </div>

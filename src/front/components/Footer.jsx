@@ -1,6 +1,6 @@
 export const Footer = () => (
   <footer
-    className="text-center py-4 border-top text-white bg-body-tertiary"
+    className="text-center py-4 border-top text-white brand-footer"
     style={{
       fontFamily: "'Playfair Display', serif",
       fontSize: "0.9rem",

@@ -1,0 +1,253 @@
+/* Estilos globales y variables de color para unificar el look & feel */
+
+:root {
+  /* Paleta IPN: Guinda, Gris, Blanco */
+  --brand-bg: #550002; /* Guinda fijo solicitado */
+  --brand-bg-override: #550002; /* Si está presente, anula cálculo dinámico */
+  --brand-text: #ffffff; /* Blanco */
+  --brand-gray: #9d9d9c; /* Gris IPN aproximado */
+  --ipn-gris-deportivo: #b7b7b7; /* Gris claro usado en indumentaria/equipos deportivos */
+  --ipn-amarillo: #f2c438; /* Amarillo acento (opcional) */
+  --ipn-verde: #2e7d32; /* Verde acento (opcional) */
+  --ipn-azul: #1565c0; /* Azul acento (opcional) */
+  --brand-muted: #d9d9d9; /* Texto secundario sobre fondos oscuros */
+  --brand-card-bg: #1b1b1b; /* Fondo para tarjetas oscuras */
+  --brand-border: rgba(255, 255, 255, 0.2); /* Borde sutil claro */
+  /* Tipografías */
+  --font-body: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+    Arial, sans-serif;
+  --font-heading: "Playfair Display", "Times New Roman", Times, serif;
+  --font-subhead: "Source Serif 4", Georgia, serif;
+}
+
+/* Wrapper de página con mismo estilo visual de Home */
+.app-page {
+  min-height: 100vh;
+  background-color: var(--brand-bg);
+  color: var(--brand-text);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-body);
+}
+
+.page-header {
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+}
+
+.page-header h1 {
+  font-size: 1.6rem; /* más grande para título principal */
+  margin-bottom: 0.25rem;
+  font-family: var(--font-heading);
+}
+
+.page-header p {
+  font-size: 1.05rem; /* subtítulo ligeramente más grande */
+  margin: 0;
+  color: var(--brand-muted);
+  font-family: var(--font-subhead);
+}
+
+/* Jerarquía tipográfica global */
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+}
+h4,
+h5,
+h6,
+blockquote,
+.lead {
+  font-family: var(--font-subhead);
+}
+body,
+p,
+li,
+a,
+button,
+input,
+textarea,
+.nav,
+.navbar,
+.dropdown-menu {
+  font-family: var(--font-body);
+}
+
+/* Tarjetas oscuras con borde claro, usadas en Home */
+.brand-card.card {
+  background-color: var(--brand-card-bg) !important;
+  color: var(--brand-text);
+  border-color: var(--brand-border) !important;
+}
+
+/* Variante clara para botones/targets clicables del Home */
+/* Tarjeta con estilo de formulario (como Register): gris oscuro, borde blanco, texto claro */
+.brand-form-card.card {
+  background-color: #343a40 !important; /* similar a .bg-dark / formulario */
+  color: #ffffff !important;
+  border: 1px solid #ffffff !important;
+}
+.brand-form-card .card-title { color: #fff; }
+.brand-form-card .card-text { color: #e9ecef; }
+/* Centrado y énfasis visual consistente para títulos en Home */
+.brand-form-card .card-body {
+  text-align: center;
+}
+.brand-form-card .card-title {
+  font-weight: 600; /* negritas sutiles */
+}
+
+/* Utilidades de texto/links en fondos oscuros */
+.text-muted-light {
+  color: var(--brand-muted) !important;
+}
+
+.link-on-dark {
+  color: var(--brand-text);
+  text-decoration: none;
+}
+
+.link-on-dark:hover {
+  text-decoration: underline;
+}
+
+/* Navbar y Footer con paleta IPN */
+.brand-navbar {
+  background-color: var(--brand-bg) !important;
+  font-family: var(--font-body);
+}
+.brand-navbar .navbar-brand,
+.brand-navbar .nav-link,
+.brand-navbar .navbar-toggler {
+  color: var(--brand-text) !important;
+}
+.brand-navbar .nav-link.active,
+.brand-navbar .nav-link:focus,
+.brand-navbar .nav-link:hover {
+  color: #ffffff !important;
+  opacity: 0.9;
+}
+.brand-navbar .navbar-toggler {
+  border-color: var(--brand-text);
+}
+
+.brand-footer {
+  background-color: var(--brand-bg);
+  color: var(--brand-text);
+  border-top: 1px solid var(--brand-border);
+  font-family: var(--font-body);
+}
+.brand-footer a {
+  color: var(--brand-text);
+}
+.brand-footer a:hover {
+  opacity: 0.85;
+}
+
+/* Tamaño del logo en navbar y headers */
+.brand-logo {
+  height: 28px;
+  width: auto;
+  display: inline-block;
+  vertical-align: middle;
+}
+@media (min-width: 768px) {
+  .brand-logo {
+    height: 32px;
+  }
+}
+
+/* Watermark de logo en páginas (fondo sutil y a gran escala) */
+.brand-watermark {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: min(80vmin, 1200px) auto; /* escala grande pero contenida */
+  opacity: 0.06; /* transparencia sutil */
+  pointer-events: none; /* no interfiere con clics */
+  filter: grayscale(20%) contrast(110%);
+  z-index: 0;
+}
+
+.page-foreground {
+  position: relative;
+  z-index: 1; /* asegura que el contenido esté sobre el watermark */
+}
+
+/* Logo de esquina en Home (blanco, tamaño mediano) */
+.brand-corner-logo {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  height: 40px;
+  width: auto;
+  z-index: 2;
+  filter: brightness(0) invert(1); /* lo fuerza a blanco sobre fondo guinda */
+  opacity: 0.9;
+}
+@media (min-width: 768px) {
+  .brand-corner-logo {
+    height: 52px;
+  }
+}
+
+/* Logo grande inferior en Home */
+.brand-bottom-logo {
+  height: 144px; /* x2 */
+  width: auto;
+  max-width: 90vw; /* evita desbordes horizontales */
+  opacity: 0.9;
+  filter: brightness(0) invert(1);
+}
+@media (min-width: 768px) {
+  .brand-bottom-logo {
+    height: 192px; /* x2 */
+  }
+}
+
+.brand-bottom-cta a.btn {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.brand-bottom-cta a.btn:hover {
+  transform: translateY(-1px);
+}
+
+/* Botón grande combinado logo + texto para CTA inferior */
+.btn-brand-large {
+  display: inline-flex;
+  flex-direction: column; /* texto debajo de la imagen */
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-width: 2px;
+  border-radius: 0.75rem;
+}
+.btn-brand-large img {
+  height: 168px; /* antes 144px: un poco más grande */
+  width: auto;
+  max-width: 80vw; /* evita overflow en móviles */
+  filter: brightness(0) invert(1);
+}
+@media (min-width: 768px) {
+  .btn-brand-large img { height: 216px; /* antes 192px */ }
+}
+
+/* Efecto de click global para todos los botones */
+.btn {
+  transition: transform 0.08s ease, box-shadow 0.2s ease, filter 0.08s ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+}
+.btn:active {
+  transform: translateY(0) scale(0.98);
+  filter: brightness(0.95);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) !important;
+}
+.btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}

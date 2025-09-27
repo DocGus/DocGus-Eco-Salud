@@ -10,10 +10,14 @@ const ProfessionalDash = () => {
   }, []);
 
   return (
-    <div className="professional-dash container py-4">
-      <h2>Panel del Profesional</h2>
-      <UserInfoCard user={user} />
-      <p className="mt-3">Usa el menú lateral para validar estudiantes o revisar expedientes.</p>
+    <div className="app-page" data-bs-theme="dark">
+      <header className="page-header">
+        <h1 className="h5 mb-1">Panel del Profesional</h1>
+        <p className="small mb-0 text-muted-light">Valida estudiantes y revisa expedientes desde el menú lateral.</p>
+      </header>
+      <main className="container" style={{ flex: "0 1 auto", padding: "1rem 0" }}>
+        <UserInfoCard user={user} />
+      </main>
     </div>
   );
 };
