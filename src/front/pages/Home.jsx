@@ -13,8 +13,11 @@ export const Home = () => {
     >
       {/* Header: título y tagline */}
       <header className="py-2 text-center page-foreground">
-        <h1 className="mb-1">Ecosistema Digital para Atención en Salud</h1>
+        <h1 className="mb-1">SanArte</h1>
+        <h2 className="mb-1">Ecosistema Digital para Atención en Salud</h2>
         <p className="small mb-0">Gestión de Expedientes Médicos</p>
+
+        
       </header>
 
       {/* Main: grid de navegación por áreas y botones de registro/login */}
@@ -27,9 +30,8 @@ export const Home = () => {
       >
         {/* Párrafo cálido y breve que explica el propósito */}
         <p className="small mb-3" style={{ maxWidth: 720, margin: "0 auto" }}>
-          Bienvenido. Este ecosistema reúne a estudiantes, profesionales y equipos multidisciplinarios
-          para construir y confirmar expedientes claros, seguros y útiles para el cuidado de la salud.
-        </p>
+          “Bienvenido a SanArte un Ecosistema Digital que conecta a Pacientes, Profesionales y Equipos de Salud 
+          para crear y confirmar expedientes clínicos claros, seguros y útiles, siempre al servicio del cuidado de la vida.” </p>
 
         {/* Tarjetas de acceso rápido a secciones (rutas informativas) */}
         <div className="row row-cols-1 row-cols-md-3 g-2">
@@ -37,8 +39,8 @@ export const Home = () => {
             <Link to="/ecosistema/academico" className="text-decoration-none text-white">
               <div className="card h-100 brand-form-card">
                 <div className="card-body p-2">
-                  <h6 className="card-title mb-1">Antecedentes del Paciente</h6>
-                  <p className="card-text small mb-0">Academia</p>
+                  <h6 className="card-title mb-1">Pacientes</h6>
+                  <p className="card-text small mb-0"></p>
                 </div>
               </div>
             </Link>
@@ -48,8 +50,8 @@ export const Home = () => {
             <Link to="/ecosistema/profesional" className="text-decoration-none text-white">
               <div className="card h-100 brand-form-card">
                 <div className="card-body p-2">
-                  <h6 className="card-title mb-1">Consulta en Salud</h6>
-                  <p className="card-text small mb-0">Profesional en Salud</p>
+                  <h6 className="card-title mb-1">Profesionales en Salud</h6>
+                  <p className="card-text small mb-0"></p>
                 </div>
               </div>
             </Link>
@@ -59,8 +61,8 @@ export const Home = () => {
             <Link to="/ecosistema/multidisciplinario" className="text-decoration-none text-white">
               <div className="card h-100 brand-form-card">
                 <div className="card-body p-2">
-                  <h6 className="card-title mb-1">Atención Multidisciplinaria</h6>
-                  <p className="card-text small mb-0">Equipo de Profesionales en Salud</p>
+                  <h6 className="card-title mb-1">Estudiantes</h6>
+                  <p className="card-text small mb-0"></p>
                 </div>
               </div>
             </Link>
@@ -69,14 +71,14 @@ export const Home = () => {
 
         {/* CTAs de registro segmentados por rol (student/professional/patient) */}
         <div className="mt-2 d-flex justify-content-center flex-wrap gap-1">
-          <Link to="/register?role=student" className="btn btn-light btn-sm text-dark">
-            Registro de Estudiante
+          <Link to="/register?role=patient" className="btn btn-light btn-sm text-dark order-1">
+            Registro de Paciente
           </Link>
-          <Link to="/register?role=professional" className="btn btn-light btn-sm text-dark">
+          <Link to="/register?role=professional" className="btn btn-light btn-sm text-dark order-2">
             Registro de Profesional
           </Link>
-          <Link to="/register?role=patient" className="btn btn-light btn-sm text-dark">
-            Registro de Paciente
+          <Link to="/register?role=student" className="btn btn-light btn-sm text-dark order-3">
+            Registro de Estudiante
           </Link>
         </div>
 
