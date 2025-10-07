@@ -17,7 +17,7 @@ export const Home = () => {
         <h2 className="mb-1">Ecosistema Digital para Atención en Salud</h2>
         <p className="small mb-0">Gestión de Expedientes Médicos</p>
 
-        
+
       </header>
 
       {/* Main: grid de navegación por áreas y botones de registro/login */}
@@ -25,18 +25,18 @@ export const Home = () => {
         className="container text-center page-foreground"
         style={{
           flex: "0 1 auto",
-          padding: "1rem 0",
+          padding: "1rem 0"
         }}
       >
         {/* Párrafo cálido y breve que explica el propósito */}
         <p className="small mb-3" style={{ maxWidth: 720, margin: "0 auto" }}>
-          “Bienvenido a SanArte un Ecosistema Digital que conecta a Pacientes, Profesionales y Equipos de Salud 
+          “Bienvenido a SanArte un Ecosistema Digital que conecta a Pacientes, Profesionales y Equipos de Salud
           para crear y confirmar expedientes clínicos claros, seguros y útiles, siempre al servicio del cuidado de la vida.” </p>
 
         {/* Tarjetas de acceso rápido a secciones (rutas informativas) */}
         <div className="row row-cols-1 row-cols-md-3 g-2">
           <div className="col">
-            <Link to="/ecosistema/academico" className="text-decoration-none text-white">
+            <Link to="/ecosistema/paciente" className="text-decoration-none text-white">
               <div className="card h-100 brand-form-card">
                 <div className="card-body p-2">
                   <h6 className="card-title mb-1">Pacientes</h6>

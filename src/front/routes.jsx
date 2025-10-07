@@ -41,7 +41,7 @@ export const router = createBrowserRouter(
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
       {/* Páginas informativas del ecosistema */}
-      <Route path="/ecosistema/academico" element={<EcosistemPatient />} />
+      <Route path="/ecosistema/paciente" element={<EcosistemPatient />} />
       <Route path="/ecosistema/profesional" element={<EcosystemProfessional />} />
       <Route path="/ecosistema/multidisciplinario" element={<EcosystemMultidisciplinary />} />
       <Route path="/dashboard" element={<DashLayout />}>
