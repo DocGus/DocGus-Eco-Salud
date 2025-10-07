@@ -1,8 +1,5 @@
-import {
-  createBrowserRouter,
-  createRoutesFromElements,
-  Route,
-} from "react-router-dom";
+import React from "react";
+import { createBrowserRouter, createRoutesFromElements, Route } from "react-router-dom";
 
 // Definición de rutas del frontend. Estructura principal:
 // - "/" -> Layout base
@@ -31,7 +28,7 @@ import StudentPatientProgress from "./pages/StudentPatientProgress.jsx";
 import ValidationStudentRequest from "./pages/ValidationStudentRequest.jsx";
 import StudentFilesReview from "./pages/StudentFilesReview.jsx";
 import ConfirmFile from "./pages/ConfirmFile.jsx"; // Confirmación del paciente sobre expediente aprobado
-import EcosystemAcademic from "./pages/EcosystemAcademic.jsx";
+import EcosistemPatient from "./pages/EcosystemAcademic.jsx"; // Renombrado desde EcosystemAcademic
 import EcosystemProfessional from "./pages/EcosystemProfessional.jsx";
 import EcosystemMultidisciplinary from "./pages/EcosystemMultidisciplinary.jsx";
 
@@ -44,7 +41,7 @@ export const router = createBrowserRouter(
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
       {/* Páginas informativas del ecosistema */}
-      <Route path="/ecosistema/academico" element={<EcosystemAcademic />} />
+      <Route path="/ecosistema/academico" element={<EcosistemPatient />} />
       <Route path="/ecosistema/profesional" element={<EcosystemProfessional />} />
       <Route path="/ecosistema/multidisciplinario" element={<EcosystemMultidisciplinary />} />
       <Route path="/dashboard" element={<DashLayout />}>

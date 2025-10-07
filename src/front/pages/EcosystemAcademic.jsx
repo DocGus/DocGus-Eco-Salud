@@ -1,6 +1,6 @@
 import React from "react";
 
-const EcosystemAcademic = () => {
+const EcosistemPatient = () => {
     return (
         <div className="app-page" data-bs-theme="dark">
             <header className="page-header">
@@ -38,4 +38,4 @@ const EcosystemAcademic = () => {
     );
 };
 
-export default EcosystemAcademic;
+export default EcosistemPatient;
