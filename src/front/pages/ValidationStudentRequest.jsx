@@ -10,7 +10,7 @@ const ValidationStudentRequest = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`${backendUrl}/api/professional/student_requests`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (!res.ok) throw new Error("Error al cargar las solicitudes.");
@@ -32,9 +32,9 @@ const ValidationStudentRequest = () => {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action })
       });
 
       if (!res.ok) throw new Error("Error procesando validación.");

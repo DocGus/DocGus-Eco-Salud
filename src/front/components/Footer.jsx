@@ -1,9 +1,11 @@
+import React from "react";
+
 export const Footer = () => (
   <footer
     className="text-center py-4 border-top text-white brand-footer"
     style={{
       fontFamily: "'Playfair Display', serif",
-      fontSize: "0.9rem",
+      fontSize: "0.9rem"
     }}
     data-bs-theme="dark"
   >

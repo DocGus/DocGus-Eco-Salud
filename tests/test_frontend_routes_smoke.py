@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import pytest
 
 # Pequeño smoke test de rutas frontend: asegura que el build contiene la nueva ruta.
 # Estrategia: compilar vite en modo build (si no existe dist) y verificar que el bundle

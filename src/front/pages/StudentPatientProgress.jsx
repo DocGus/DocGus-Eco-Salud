@@ -13,7 +13,7 @@ const StudentPatientProgress = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(`${backendUrl}/api/student/assigned_patients`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
         setAssignedPatients(data);

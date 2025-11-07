@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import {
   FaUser,
   FaEnvelope,
@@ -19,7 +20,7 @@ const UserInfoCard = ({ user }) => {
     email,
     role,
     status,
-    id,
+    id
   } = user;
 
   const fullName = `${first_name || ""} ${second_name || ""} ${first_surname || ""} ${second_surname || ""}`.trim();
@@ -131,6 +132,18 @@ const UserInfoCard = ({ user }) => {
       </div>
     </div>
   );
+};
+UserInfoCard.propTypes = {
+  user: PropTypes.shape({
+    first_name: PropTypes.string,
+    second_name: PropTypes.string,
+    first_surname: PropTypes.string,
+    second_surname: PropTypes.string,
+    email: PropTypes.string,
+    role: PropTypes.string,
+    status: PropTypes.string,
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+  })
 };
 
 export default UserInfoCard;

@@ -1,5 +1,5 @@
 import os
-import time
+import uuid
 import requests
 
 BASE = os.environ.get('TEST_BACKEND', 'http://localhost:3001/api')
@@ -15,7 +15,7 @@ def req(method, path, token=None, json=None):
 
 
 def test_full_cycle(db_conn):
-    ts = int(time.time()) % 10000
+    ts = uuid.uuid4().hex[:8]
     pwd = 'TestPass123!'
 
     # 1 admin

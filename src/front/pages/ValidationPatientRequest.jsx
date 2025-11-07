@@ -11,7 +11,7 @@ const ValidationPatientRequest = () => {
       try {
         const token = localStorage.getItem('token');
         const res = await fetch(`${backendUrl}/api/student/patient_requests`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
         setPatientRequests(data);
@@ -30,9 +30,9 @@ const ValidationPatientRequest = () => {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action })
       });
       if (!res.ok) throw new Error('Error procesando solicitud');
 

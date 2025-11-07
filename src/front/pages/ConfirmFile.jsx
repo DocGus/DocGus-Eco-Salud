@@ -23,8 +23,7 @@ const ConfirmFile = () => {
         const token = localStorage.getItem("token");
 
         const res = await fetch(`${backendUrl}/api/private`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+          headers: { Authorization: `Bearer ${token}` }        });
         const data = await res.json();
 
         if (data?.user?.medical_file_id) {
@@ -32,13 +31,13 @@ const ConfirmFile = () => {
           setMedicalFileId(fileId);
 
           const fileRes = await fetch(`${backendUrl}/api/medical_file/${fileId}`, {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${token}` }
           });
           const fileData = await fileRes.json();
           setFileStatus(fileData.medical_file.file_status);
 
           const snapRes = await fetch(`${backendUrl}/api/patient/snapshots/${fileId}`, {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${token}` }
           });
           const snapData = await snapRes.json();
           setSnapshots(snapData);
@@ -46,7 +45,7 @@ const ConfirmFile = () => {
           setError("No tienes expediente asignado.");
         }
       } catch (err) {
-        console.error("Error al cargar expediente:", err);
+        // Report error to state for the UI and avoid direct console output in production
         setError("Error al cargar expediente.");
       }
     };
@@ -62,9 +61,9 @@ const ConfirmFile = () => {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify({ action, comment }),
+        body: JSON.stringify({ action, comment })
       });
 
       if (!res.ok) throw new Error("Error en la acción.");
@@ -74,7 +73,7 @@ const ConfirmFile = () => {
       try {
         const token = localStorage.getItem("token");
         const fileRes = await fetch(`${backendUrl}/api/medical_file/${medicalFileId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` }
         });
         if (fileRes.ok) {
           const fileData = await fileRes.json();

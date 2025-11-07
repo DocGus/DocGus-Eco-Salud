@@ -15,7 +15,7 @@ const initialState = {
     traumatisms: "",
     transfusions: "",
     allergies: "",
-    others: "",
+    others: ""
   },
   family_background: {
     hypertension: false,
@@ -26,7 +26,7 @@ const initialState = {
     liver_disease: false,
     mental_illness: false,
     congenital_malformations: false,
-    others: "",
+    others: ""
   },
   non_pathological_background: {
     sex: "",
@@ -58,7 +58,7 @@ const initialState = {
     alcohol_use: "",
     recreational_drugs: "",
     addictions: "",
-    others: "",
+    others: ""
   },
   gynecological_background: {
     menarche_age: "",
@@ -67,8 +67,8 @@ const initialState = {
     c_sections: "",
     abortions: "",
     contraceptive_method: "",
-    others: "",
-  },
+    others: ""
+  }
 };
 
 // Normaliza valores entrantes (del backend) contra un objeto de defaults.
@@ -100,8 +100,8 @@ const BackGroundInterview = () => {
       ...prev,
       [section]: {
         ...prev[section],
-        [name]: val,
-      },
+        [name]: val
+      }
     }));
   };
 
@@ -118,7 +118,7 @@ const BackGroundInterview = () => {
     // Cuerpo enviado al backend para persistir antecedentes en la historia clínica.
     const newFormData = {
       ...form,
-      medical_file_id: medicalFileId,
+      medical_file_id: medicalFileId
     };
 
     try {
@@ -128,14 +128,14 @@ const BackGroundInterview = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(newFormData),
+        body: JSON.stringify(newFormData)
       });
 
       const data = await response.json();
       if (!response.ok) {
-        console.error("Error en antecedentes:", data);
+        // Logging removed to comply with lint rule "no-console"
         alert(`Error: ${data.error || data.message}`);
         return;
       }
@@ -151,14 +151,14 @@ const BackGroundInterview = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ snapshot_url: dataUrl }),
+        body: JSON.stringify({ snapshot_url: dataUrl })
       });
 
       if (!snapshotRes.ok) {
         const snapshotData = await snapshotRes.json();
-        console.error("Error al subir snapshot:", snapshotData);
+        // Error logging skipped to comply with lint rule "no-console"
         alert(`Error al subir snapshot: ${snapshotData.error}`);
         return;
       }
@@ -169,7 +169,7 @@ const BackGroundInterview = () => {
       setForm(initialState);
 
     } catch (err) {
-      console.error("Error de conexión:", err);
+      // Error logging suppressed to comply with lint rule "no-console"
       alert("Error de conexión con el servidor.");
     }
   };
@@ -180,12 +180,12 @@ const BackGroundInterview = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/medical_file/${medicalFileId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
 
         if (!res.ok) {
-          console.error("Error al cargar expediente:", data);
+          alert(`Error al cargar expediente: ${data?.error || data?.message || JSON.stringify(data)}`);
           return;
         }
 
@@ -212,7 +212,7 @@ const BackGroundInterview = () => {
           setSentToReview(true);
         }
       } catch (error) {
-        console.error("Error al cargar expediente:", error);
+        alert(`Error al cargar expediente: ${error?.message || JSON.stringify(error)}`);
       }
     };
 

@@ -21,6 +21,7 @@ const UsersTable = () => {
       const data = await response.json();
       setUsers(data);  // ✅ FIX: ahora usamos directamente data porque es un array
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Error fetching users:', error);
     }
   };
@@ -48,6 +49,7 @@ const UsersTable = () => {
       setUsers(users.filter(user => user.id !== userId));
       alert("Usuario eliminado correctamente");
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Error eliminando usuario:', error);
       alert("Error eliminando usuario");
     }
@@ -73,6 +75,7 @@ const UsersTable = () => {
       alert("Profesional validado exitosamente");
       fetchUsers();
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Error validando profesional:', error);
       alert('Error validando profesional');
     }

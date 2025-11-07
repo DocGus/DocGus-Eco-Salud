@@ -19,7 +19,7 @@ const StudentFilesReview = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(`${backendUrl}/api/professional/review_files`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` }
         });
 
         if (!res.ok) throw new Error("Error al cargar los expedientes.");
@@ -41,9 +41,9 @@ const StudentFilesReview = () => {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify({ action, comment: comments[fileId] || "" }),
+        body: JSON.stringify({ action, comment: comments[fileId] || "" })
       });
 
       if (!res.ok) throw new Error("Error procesando expediente");

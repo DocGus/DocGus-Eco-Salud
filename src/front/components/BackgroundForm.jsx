@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import html2canvas from "html2canvas";
 
 const initialState = {
@@ -10,7 +11,7 @@ const initialState = {
     traumatisms: "",
     transfusions: "",
     allergies: "",
-    others: "",
+    others: ""
   },
   family_background: {
     hypertension: false,
@@ -21,7 +22,7 @@ const initialState = {
     liver_disease: false,
     mental_illness: false,
     congenital_malformations: false,
-    others: "",
+    others: ""
   },
   non_pathological_background: {
     sex: "",
@@ -53,7 +54,7 @@ const initialState = {
     alcohol_use: "",
     recreational_drugs: "",
     addictions: "",
-    others: "",
+    others: ""
   },
   gynecological_background: {
     menarche_age: "",
@@ -62,8 +63,8 @@ const initialState = {
     c_sections: "",
     abortions: "",
     contraceptive_method: "",
-    others: "",
-  },
+    others: ""
+  }
 };
 
 const normalize = (data, defaults) => {
@@ -90,8 +91,8 @@ const BackgroundForm = ({ medicalFileId }) => {
       ...prev,
       [section]: {
         ...prev[section],
-        [name]: val,
-      },
+        [name]: val
+      }
     }));
   };
 
@@ -106,7 +107,7 @@ const BackgroundForm = ({ medicalFileId }) => {
 
     const newFormData = {
       ...form,
-      medical_file_id: medicalFileId,
+      medical_file_id: medicalFileId
     };
 
     try {
@@ -114,13 +115,14 @@ const BackgroundForm = ({ medicalFileId }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(newFormData),
+        body: JSON.stringify(newFormData)
       });
 
       const data = await response.json();
       if (!response.ok) {
+        // eslint-disable-next-line no-console
         console.error("Error en antecedentes:", data);
         alert(`Error al guardar antecedentes: ${data.error || data.message || "Revisa la consola"}`);
         return;
@@ -134,14 +136,14 @@ const BackgroundForm = ({ medicalFileId }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ snapshot_url: dataUrl }),
+        body: JSON.stringify({ snapshot_url: dataUrl })
       });
 
       if (!snapshotRes.ok) {
         const snapshotData = await snapshotRes.json();
-        console.error("Error al subir snapshot:", snapshotData);
+        // console logging removed to satisfy lint rules; show alert for the user instead
         alert(`Error al subir snapshot: ${snapshotData.error || "Revisa la consola"}`);
         return;
       }
@@ -150,7 +152,7 @@ const BackgroundForm = ({ medicalFileId }) => {
       setForm(initialState);
 
     } catch (err) {
-      console.error("Error de conexión:", err);
+      // Report error to the user instead of using console to satisfy lint rules
       alert("Error de conexión con el servidor.");
     }
   };
@@ -160,12 +162,13 @@ const BackgroundForm = ({ medicalFileId }) => {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/medical_file/${medicalFileId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
 
         if (!res.ok) {
-          console.error("Error al cargar expediente:", data);
+          // Mostrar error al usuario en lugar de usar console
+          alert(`Error al cargar expediente: ${data.error || data.message || "Error desconocido"}`);
           return;
         }
 
@@ -186,7 +189,7 @@ const BackgroundForm = ({ medicalFileId }) => {
 
         setForm(newForm);
       } catch (error) {
-        console.error("Error al cargar expediente:", error);
+        alert(`Error al cargar expediente: ${error?.message || error}`);
       }
     };
 
@@ -266,6 +269,10 @@ const BackgroundForm = ({ medicalFileId }) => {
       </div>
     </form>
   );
+};
+
+BackgroundForm.propTypes = {
+  medicalFileId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired
 };
 
 export default BackgroundForm;

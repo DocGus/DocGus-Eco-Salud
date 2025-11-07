@@ -1,8 +1,9 @@
-import { Outlet } from "react-router-dom/dist"
-import ScrollToTop from "../components/ScrollToTop"
-import BrandThemeSync from "../components/BrandThemeSync"
-import { Navbar } from "../components/Navbar"
-import { Footer } from "../components/Footer"
+import React from "react";
+import { Outlet } from "react-router-dom/dist";
+import ScrollToTop from "../components/ScrollToTop";
+import BrandThemeSync from "../components/BrandThemeSync";
+import { Navbar } from "../components/Navbar";
+import { Footer } from "../components/Footer";
 
 // Base component that maintains the navbar and footer throughout the page and the scroll to top functionality.
 export const Layout = () => {
@@ -13,5 +14,5 @@ export const Layout = () => {
             <Outlet />
             <Footer />
         </ScrollToTop>
-    )
-}
+    );
+};

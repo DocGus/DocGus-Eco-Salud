@@ -16,8 +16,8 @@ const PatientRequestStudent = () => {
         const token = localStorage.getItem('token');
         const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/patient/student_request_status`, {
           headers: {
-            Authorization: `Bearer ${token}`,
-          },
+            Authorization: `Bearer ${token}`
+          }
         });
         if (!res.ok) throw new Error('Error al obtener el estado de la solicitud.');
         const data = await res.json();
@@ -27,7 +27,7 @@ const PatientRequestStudent = () => {
           setProfessionalId(data.professional_id);
         }
       } catch (err) {
-        console.error(err);
+        setError(err?.message || 'Error al obtener el estado de la solicitud.');
       } finally {
         setLoading(false);
       }
@@ -55,8 +55,8 @@ const PatientRequestStudent = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+            Authorization: `Bearer ${token}`
+          }
         }
       );
 
@@ -82,8 +82,8 @@ const PatientRequestStudent = () => {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/patient/cancel_student_request`, {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${token}`,
-        },
+          Authorization: `Bearer ${token}`
+        }
       });
 
       if (!response.ok) throw new Error('No se pudo cancelar la solicitud');

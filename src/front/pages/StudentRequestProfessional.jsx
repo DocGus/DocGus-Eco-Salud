@@ -15,8 +15,8 @@ const StudentRequestProfessional = () => {
         const token = localStorage.getItem('token');
         const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/student/professional_request_status`, {
           headers: {
-            Authorization: `Bearer ${token}`,
-          },
+            Authorization: `Bearer ${token}`
+          }
         });
         if (!res.ok) throw new Error('Error al obtener el estado de la solicitud.');
         const data = await res.json();
@@ -25,7 +25,7 @@ const StudentRequestProfessional = () => {
           setRequestedProfessionalId(data.professional_id);
         }
       } catch (err) {
-        console.error(err);
+        setError('Error al obtener el estado de la solicitud.');
       } finally {
         setLoading(false);
       }
@@ -53,8 +53,8 @@ const StudentRequestProfessional = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+            Authorization: `Bearer ${token}`
+          }
         }
       );
 
@@ -80,8 +80,8 @@ const StudentRequestProfessional = () => {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/student/cancel_professional_request`, {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${token}`,
-        },
+          Authorization: `Bearer ${token}`
+        }
       });
 
       if (!response.ok) throw new Error('No se pudo cancelar la solicitud');

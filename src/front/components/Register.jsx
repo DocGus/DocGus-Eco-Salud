@@ -110,7 +110,7 @@ const Register = () => {
               { label: "Segundo Apellido", name: "second_surname", type: "text" },
               { label: "Fecha de Nacimiento", name: "birth_day", type: "date", required: true },
               { label: "Correo Electrónico", name: "email", type: "email", required: true },
-              { label: "Contraseña", name: "password", type: "password", required: true },
+              { label: "Contraseña", name: "password", type: "password", required: true }
             ].map(field => (
               <div className="col-12 col-md-6 col-lg-4" key={field.name}>
                 <label className="form-label text-white">{field.label}</label>

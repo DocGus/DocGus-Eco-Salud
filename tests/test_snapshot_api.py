@@ -1,5 +1,5 @@
 import os
-import time
+import uuid
 import json
 import urllib.request
 import urllib.error
@@ -33,8 +33,7 @@ def req(method, path, token=None, json_body=None):
 
 
 def test_snapshot_persistence(db_conn):
-    ts = int(time.time()) % 10000
-    ts = int(time.time()) % 10000
+    ts = uuid.uuid4().hex[:8]
 
     # Preparar credenciales y crear admin + professional necesarios para el flujo
     pwd = 'TestPass123!'
@@ -151,7 +150,13 @@ def test_snapshot_persistence(db_conn):
     assert isinstance(snaps, list)
     assert len(snaps) >= 1
     assert 'url' in snaps[0]
-    assert snaps[0]['url'].startswith('data:image/png')
+    url = snaps[0]['url']
+    # Acepta data URL inline o una URL pública (local /api/uploads o CDN como Cloudinary)
+    assert (
+        url.startswith('data:image/') or
+        url.startswith('http://') or
+        url.startswith('https://')
+    )
 
     # Si hay Postgres, comprobar fila en la BD
     if db_conn.get('available'):
