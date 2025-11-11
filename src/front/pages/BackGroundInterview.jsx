@@ -86,6 +86,45 @@ const normalize = (data, defaults) => {
   return copy;
 };
 
+// Orden configurable para los campos de "Antecedentes No Patológicos".
+// Nota: Por defecto usamos el orden actual. Para reordenar, basta con cambiar
+// el arreglo NP_FIELDS_ORDER sin añadir ni quitar claves existentes.
+const NP_FIELDS_ORDER_DEFAULT = Object.keys(initialState.non_pathological_background);
+const NP_FIELDS_ORDER = [
+  ...NP_FIELDS_ORDER_DEFAULT,
+  // Ejemplo de reordenamiento futuro:
+  // "marital_status", "civil_status", "education_level", ...
+];
+
+// Renderizador de la sección No Patológica con orden controlado por NP_FIELDS_ORDER
+const NonPathologicalSection = ({ values, onChange }) => {
+  return (
+    <>
+      <h4 className="mt-4 mb-2 text-lg font-semibold">Antecedentes No Patológicos</h4>
+      {NP_FIELDS_ORDER.map((field) => (
+        <div key={field} className="mb-2 col-6">
+          <label className="block">{field.replace(/_/g, " ")}</label>
+          {typeof initialState.non_pathological_background[field] === "boolean" ? (
+            <input
+              type="checkbox"
+              name={field}
+              checked={values[field]}
+              onChange={onChange}
+            />
+          ) : (
+            <textarea
+              name={field}
+              value={values[field]}
+              onChange={onChange}
+              className="form-control"
+            />
+          )}
+        </div>
+      ))}
+    </>
+  );
+};
+
 const BackGroundInterview = () => {
   const { medicalFileId } = useParams(); // ID del expediente recibido por URL.
   const [form, setForm] = useState(initialState); // Estado único con todas las secciones.
@@ -230,27 +269,10 @@ const BackGroundInterview = () => {
       <h2 className="text-2xl font-bold mb-4">Antecedentes Médicos del Paciente</h2>
 
       {/* ----------------- NO PATOLÓGICOS ----------------- */}
-      <h4 className="mt-4 mb-2 text-lg font-semibold">Antecedentes No Patológicos</h4>
-      {Object.keys(initialState.non_pathological_background).map((field) => (
-        <div key={field} className="mb-2 col-6">
-          <label className="block">{field.replace(/_/g, " ")}</label>
-          {typeof initialState.non_pathological_background[field] === "boolean" ? (
-            <input
-              type="checkbox"
-              name={field}
-              checked={form.non_pathological_background[field]}
-              onChange={(e) => handleChange(e, "non_pathological_background")}
-            />
-          ) : (
-            <textarea
-              name={field}
-              value={form.non_pathological_background[field]}
-              onChange={(e) => handleChange(e, "non_pathological_background")}
-              className="form-control"
-            />
-          )}
-        </div>
-      ))}
+      <NonPathologicalSection
+        values={form.non_pathological_background}
+        onChange={(e) => handleChange(e, "non_pathological_background")}
+      />
 
       {/* ----------------- PATOLÓGICOS ----------------- */}
       <h4 className="mt-4 mb-2 text-lg font-semibold">Antecedentes Patológicos</h4>
