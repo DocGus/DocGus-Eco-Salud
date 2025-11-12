@@ -74,6 +74,41 @@ textarea,
   font-family: var(--font-body);
 }
 
+/* ---------- Formulario de Antecedentes: subgrupos visuales ---------- */
+.subgroup-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--brand-border);
+  border-radius: 12px;
+  padding: 1rem 1rem 0.5rem 1rem;
+  margin: 0.75rem 0 1rem 0;
+}
+
+.subgroup-title {
+  text-align: center;
+  font-family: var(--font-subhead);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-size: 1.15rem; /* ligeramente más grande que h6 */
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px dashed var(--brand-border);
+}
+
+.subgroup-subtitle {
+  text-align: center;
+  font-family: var(--font-subhead);
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0.5rem 0 0.5rem 0;
+  color: var(--brand-muted);
+}
+
+.form-note-inline {
+  font-size: 0.9rem;
+  color: var(--brand-muted);
+}
+
 /* Tarjetas oscuras con borde claro, usadas en Home */
 .brand-card.card {
   background-color: var(--brand-card-bg) !important;
@@ -88,8 +123,12 @@ textarea,
   color: #ffffff !important;
   border: 1px solid #ffffff !important;
 }
-.brand-form-card .card-title { color: #fff; }
-.brand-form-card .card-text { color: #e9ecef; }
+.brand-form-card .card-title {
+  color: #fff;
+}
+.brand-form-card .card-text {
+  color: #e9ecef;
+}
 /* Centrado y énfasis visual consistente para títulos en Home */
 .brand-form-card .card-body {
   text-align: center;
@@ -231,7 +270,9 @@ textarea,
   filter: brightness(0) invert(1);
 }
 @media (min-width: 768px) {
-  .btn-brand-large img { height: 216px; /* antes 192px */ }
+  .btn-brand-large img {
+    height: 216px; /* antes 192px */
+  }
 }
 
 /* Efecto de click global para todos los botones */
@@ -250,4 +291,30 @@ textarea,
 .btn:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.5);
   outline-offset: 2px;
+}
+
+/* ---- Mejora visibilidad checkboxes hereditaria ---- */
+.hereditary-section .form-check-input:checked {
+  background-color: var(--bs-primary) !important;
+  border-color: var(--bs-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
+}
+.hereditary-section .form-check-input {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+/* Título de sistema en hereditarias: sutil acento azul y bullet */
+.hereditary-section .system-title {
+  /* Texto con leve efecto metálico (gris -> casi blanco -> gris) */
+  background-image: linear-gradient(90deg, #9fa6ad, #e6e8ea 45%, #9fa6ad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent; /* el color viene del gradiente */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  opacity: 0.9; /* más visible que el gris tenue, pero discreto */
+  text-shadow: 0 0 0.5px rgba(255, 255, 255, 0.25); /* leve brillo */
 }

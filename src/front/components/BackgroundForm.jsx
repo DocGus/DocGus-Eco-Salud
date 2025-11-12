@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import html2canvas from "html2canvas";
 import SelectOrOther from "./SelectOrOther";
 import MultiSelectOrOther from "./MultiSelectOrOther";
+import HereditaryFamilyHistory from "./HereditaryFamilyHistory";
 
 const initialState = {
   patological_background: {
@@ -24,7 +25,8 @@ const initialState = {
     liver_disease: false,
     mental_illness: false,
     congenital_malformations: false,
-    others: ""
+    others: "",
+    hereditary_conditions: [] // [{ system, disease, other_name?: string, carriers: string }]
   },
   non_pathological_background: {
     // Identidad biológica
@@ -132,11 +134,13 @@ const initialState = {
   },
   gynecological_background: {
     menarche_age: "",
+    last_menstruation_date: "",
     pregnancies: "",
     births: "",
     c_sections: "",
     abortions: "",
     contraceptive_method: "",
+    contraceptive_method_since: "",
     others: ""
   }
 };
@@ -147,6 +151,8 @@ const normalize = (data, defaults) => {
     const val = data[key];
     if (typeof defaults[key] === "boolean") {
       copy[key] = val === true;
+    } else if (Array.isArray(defaults[key])) {
+      copy[key] = Array.isArray(val) ? val : defaults[key];
     } else {
       copy[key] = val ?? "";
     }
@@ -207,6 +213,8 @@ const BackgroundForm = ({ medicalFileId }) => {
       contraceptive_method: ["Ninguno", "DIU", "Implante", "Pastillas", "Inyección", "Condón"]
     }
   };
+
+  // Lógica de hereditarios externalizada a HereditaryFamilyHistory
 
   const handleChange = (e, section) => {
     const { name, value, type, checked } = e.target;
@@ -406,9 +414,39 @@ const BackgroundForm = ({ medicalFileId }) => {
       };
     };
 
+    // Transformar antecedentes familiares: consolidar hereditarios sin romper esquema
+    const buildFamilyPayload = (fb) => {
+      const infoParts = [];
+      const list = Array.isArray(fb.hereditary_conditions) ? fb.hereditary_conditions : [];
+      if (list.length) {
+        const blocks = list.map((it) => {
+          const diseaseName = it.disease === "Otro" ? (it.other_name || "Otro") : it.disease;
+          const carriers = (it.carriers || "").trim();
+          const parts = [`Sistema: ${it.system}`, `Enfermedad: ${diseaseName}`];
+          if (carriers) parts.push(`Portadores: ${carriers}`);
+          return parts.join(" | ");
+        });
+        infoParts.push(`Hereditario: ${blocks.join("; ")}`);
+      }
+      if (fb.others) infoParts.push(`Otros: ${fb.others}`);
+
+      return {
+        hypertension: !!fb.hypertension,
+        diabetes: !!fb.diabetes,
+        cancer: !!fb.cancer,
+        heart_diseases: !!fb.heart_disease,
+        kidney_diseases: !!fb.kidney_disease,
+        liver_diseases: !!fb.liver_disease,
+        mental_illnesses: !!fb.mental_illness,
+        congenital_diseases: !!fb.congenital_malformations,
+        other_family_background_info: infoParts.length ? infoParts.join(" | ") : undefined,
+      };
+    };
+
     const transformed = {
       ...form,
       non_pathological_background: buildNonPathPayload(form.non_pathological_background),
+      family_background: buildFamilyPayload(form.family_background),
       medical_file_id: medicalFileId
     };
 
@@ -566,7 +604,7 @@ const BackgroundForm = ({ medicalFileId }) => {
       {/* 2. Identidad geográfica */}
       <div className="subgroup-card col-12">
         <div className="subgroup-title">2) Identidad geográfica</div>
-        <div className="subgroup-subtitle">a) Origen</div>
+
         {[
           { key: "birth_country", label: "País de nacimiento" },
           { key: "birth_state", label: "Estado" },
@@ -585,9 +623,9 @@ const BackgroundForm = ({ medicalFileId }) => {
           <label className="form-label">Otros datos (nacimiento)</label>
           <textarea className="form-control" name="birth_other_info" value={form.non_pathological_background.birth_other_info} onChange={(e) => handleChange(e, "non_pathological_background")} />
         </div>
-        <div className="subgroup-subtitle">b) Residencia actual</div>
+
         {[
-          { key: "residence_country", label: "País" },
+          { key: "residence_country", label: "País de residencia" },
           { key: "residence_state", label: "Estado" },
           { key: "residence_city", label: "Municipio / Ciudad" },
           { key: "residence_neighborhood", label: "Colonia / Barrio" },
@@ -606,9 +644,9 @@ const BackgroundForm = ({ medicalFileId }) => {
         </div>
       </div>
 
-      {/* 3. Identidad política social y económica */}
+      {/* 3. IDENTIDAD ECONOMICA Y SOCIAL */}
       <div className="subgroup-card col-12">
-        <div className="subgroup-title">3) Identidad política, social y económica</div>
+        <div className="subgroup-title">3) IDENTIDAD ECONOMICA Y SOCIAL</div>
         {/* Nacionalidad con selector de países (México pre-seleccionado) */}
         <SelectOrOther
           label="Nacionalidad"
@@ -962,9 +1000,9 @@ const BackgroundForm = ({ medicalFileId }) => {
         </div>
       </div>
 
-      {/* 6. Estilo de vida */}
+      {/* 4. Estilo de vida */}
       <div className="subgroup-card col-12">
-        <div className="subgroup-title">6) Estilo de vida</div>
+        <div className="subgroup-title">4) Estilo de vida</div>
         <div className="subgroup-subtitle">a) Actividad física</div>
         {(form.non_pathological_background.exercise_activities || []).map((act, idx) => (
           <div key={`ex-${idx}`} className="border rounded p-3 mb-3">
@@ -1410,12 +1448,14 @@ const BackgroundForm = ({ medicalFileId }) => {
 
       {/* ---------- FAMILIARES ---------- */}
       <h4 className="mt-4 mb-2 text-lg font-semibold">Antecedentes Familiares</h4>
-      {["hypertension", "diabetes", "cancer", "heart_disease", "kidney_disease", "liver_disease", "mental_illness", "congenital_malformations"].map((field) => (
-        <div key={field} className="form-check col-6 mb-2">
-          <input className="form-check-input" type="checkbox" name={field} checked={form.family_background[field]} onChange={(e) => handleChange(e, "family_background")} />
-          <label className="form-check-label">{field.replace(/_/g, " ")}</label>
-        </div>
-      ))}
+      <HereditaryFamilyHistory
+        value={form.family_background.hereditary_conditions}
+        onChange={(next) => setForm((prev) => ({
+          ...prev,
+          family_background: { ...prev.family_background, hereditary_conditions: next }
+        }))}
+      />
+      {/* Eliminados los antecedentes hereditarios clásicos (checkboxes simples) según nueva especificación */}
       <div className="mb-2 col-6">
         <label className="block">Otros antecedentes familiares</label>
         <textarea name="others" value={form.family_background.others} onChange={(e) => handleChange(e, "family_background")} className="form-control" />
@@ -1423,21 +1463,80 @@ const BackgroundForm = ({ medicalFileId }) => {
 
       {/* ---------- GINECOLÓGICOS ---------- */}
       <h4 className="mt-4 mb-2 text-lg font-semibold">Antecedentes Ginecológicos</h4>
-      {["menarche_age", "pregnancies", "births", "c_sections", "abortions"].map((field) => (
-        <div key={field} className="mb-2 col-6">
-          <label className="block">{field.replace(/_/g, " ")}</label>
-          <input type="text" name={field} value={form.gynecological_background[field]} onChange={(e) => handleChange(e, "gynecological_background")} className="form-control" />
+      {/* Menarca y Fecha de última menstruación */}
+      <div className="row g-2 mb-2">
+        {/* Menarca: edad en años */}
+        <div className="col-12 col-md-6">
+          <label className="form-label">Menarca (edad en años)</label>
+          <input
+            type="number"
+            name="menarche_age"
+            min="8"
+            max="20"
+            step="1"
+            placeholder="Ej. 12"
+            value={form.gynecological_background.menarche_age}
+            onChange={(e) => handleChange(e, "gynecological_background")}
+            className="form-control"
+          />
         </div>
-      ))}
+        {/* Fecha de última menstruación */}
+        <div className="col-12 col-md-6">
+          <label className="form-label">Fecha de última menstruación</label>
+          <input
+            type="date"
+            name="last_menstruation_date"
+            value={form.gynecological_background.last_menstruation_date || ""}
+            onChange={(e) => handleChange(e, "gynecological_background")}
+            className="form-control"
+          />
+        </div>
+      </div>
+      {/* Cantidades numéricas: Embarazos, Partos, Cesáreas, Abortos */}
+      <div className="row g-2 mb-2">
+        {[
+          { key: "pregnancies", label: "Embarazos" },
+          { key: "births", label: "Partos" },
+          { key: "c_sections", label: "Cesáreas" },
+          { key: "abortions", label: "Abortos" },
+        ].map(({ key, label }) => (
+          <div key={key} className="col-6 col-md-3">
+            <label className="form-label">{label}</label>
+            <input
+              type="number"
+              name={key}
+              min="0"
+              max="20"
+              step="1"
+              placeholder="0"
+              value={form.gynecological_background[key]}
+              onChange={(e) => handleChange(e, "gynecological_background")}
+              className="form-control"
+            />
+          </div>
+        ))}
+      </div>
       <SelectOrOther
-        label="contraceptive method"
+        label="Método anticonceptivo"
         name="contraceptive_method"
         value={form.gynecological_background.contraceptive_method}
         options={fieldOptions.gynecological_background.contraceptive_method}
         onChange={(name, value) => handleChange({ target: { name, value } }, "gynecological_background")}
       />
+      {form.gynecological_background.contraceptive_method && form.gynecological_background.contraceptive_method !== "Ninguno" && (
+        <div className="mb-2 col-6">
+          <label className="form-label">Desde cuándo usa este método</label>
+          <input
+            type="month"
+            name="contraceptive_method_since"
+            value={form.gynecological_background.contraceptive_method_since || ""}
+            onChange={(e) => handleChange(e, "gynecological_background")}
+            className="form-control"
+          />
+        </div>
+      )}
       <div className="mb-2 col-6">
-        <label className="block">others</label>
+        <label className="block">Otros</label>
         <input type="text" name="others" value={form.gynecological_background.others} onChange={(e) => handleChange(e, "gynecological_background")} className="form-control" />
       </div>
 
