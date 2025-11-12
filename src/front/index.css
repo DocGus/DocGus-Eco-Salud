@@ -84,24 +84,57 @@ textarea,
 }
 
 .subgroup-title {
-  text-align: center;
+  text-align: left; /* ahora los subtítulos de subgrupos alineados a la izquierda */
   font-family: var(--font-subhead);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  font-size: 1.15rem; /* ligeramente más grande que h6 */
+  font-size: 1.05rem; /* un poco más discreto para diferenciar del título principal */
   margin: 0 0 0.75rem 0;
   padding-bottom: 0.35rem;
   border-bottom: 1px dashed var(--brand-border);
 }
 
 .subgroup-subtitle {
-  text-align: center;
+  text-align: left; /* subtítulos internos también a la izquierda */
   font-family: var(--font-subhead);
   font-weight: 600;
-  font-size: 1rem;
-  margin: 0.5rem 0 0.5rem 0;
+  font-size: 0.95rem;
+  margin: 0.25rem 0 0.5rem 0;
   color: var(--brand-muted);
+}
+
+/* Títulos principales (h4) centrados dentro del formulario de antecedentes */
+form h4.text-lg.font-semibold,
+.background-form h4.text-lg.font-semibold {
+  text-align: center;
+  width: 100%;
+}
+
+/* Espaciado uniforme entre grupos y campos individuales */
+.background-form .form-label {
+  margin-bottom: 0.35rem;
+}
+.background-form .col-6.mb-2,
+.background-form .col-12.mb-2,
+.background-form .mb-2,
+.background-form .row.g-2.mb-2 > [class*="col-"] {
+  margin-bottom: 0.75rem !important;
+}
+.background-form input.form-control,
+.background-form select.form-select,
+.background-form textarea.form-control {
+  margin-bottom: 0.25rem;
+}
+.background-form .border.rounded.p-2.mb-2 {
+  margin-bottom: 1rem !important;
+  background: rgba(255, 255, 255, 0.03);
+}
+.background-form .subgroup-card {
+  padding-bottom: 1rem;
+}
+.background-form .subgroup-card > .row > [class*="col-"] {
+  margin-bottom: 0.75rem;
 }
 
 .form-note-inline {

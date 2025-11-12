@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 
 // Normaliza opciones permitiendo strings o {value,label}
@@ -32,13 +32,18 @@ const MultiSelectOrOther = ({
     const [selected, setSelected] = useState(initialSelected);
     const [otherOpen, setOtherOpen] = useState(false);
     const [otherValue, setOtherValue] = useState("");
+    const mountedRef = useRef(true);
+    useEffect(() => () => { mountedRef.current = false; }, []);
 
     // Mantener el estado sincronizado si el padre cambia 'value'
     useEffect(() => {
         setSelected(initialSelected);
     }, [initialSelected]);
 
-    const emit = (next) => onChange(name, joinValue(next, delimiter));
+    const emit = (next) => {
+        if (!mountedRef.current) return;
+        onChange(name, joinValue(next, delimiter));
+    };
 
     // (handler select múltiple original no se utiliza con checkboxes; se deja comentado por si se requiere volver)
     // const handleSelectChange = (e) => {
@@ -66,8 +71,10 @@ const MultiSelectOrOther = ({
 
     const removeItem = (val) => {
         const next = selected.filter((s) => s !== val);
-        setSelected(next);
-        emit(next);
+        if (next !== selected) {
+            setSelected(next);
+            emit(next);
+        }
     };
 
     const cols = Math.max(1, Math.min(6, Number(columns) || 1));
@@ -100,8 +107,10 @@ const MultiSelectOrOther = ({
                                 } else if (!checked && selected.includes(opt.value)) {
                                     next = selected.filter((s) => s !== opt.value);
                                 }
-                                setSelected(next);
-                                emit(next);
+                                if (next !== selected) {
+                                    setSelected(next);
+                                    emit(next);
+                                }
                             }}
                         />
                         <label className="form-check-label" htmlFor={`${name}-${opt.value}`}>{opt.label}</label>
@@ -170,4 +179,4 @@ MultiSelectOrOther.propTypes = {
     columns: PropTypes.number
 };
 
-export default MultiSelectOrOther;
+export default React.memo(MultiSelectOrOther);

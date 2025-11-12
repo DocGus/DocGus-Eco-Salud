@@ -105,12 +105,20 @@ def register_user():
         return jsonify({"message": "El correo ya está registrado"}), 400
 
     try:
+        # Normalizar birth_day a objeto date (SQLite exige date nativo)
+        from datetime import datetime
+        try:
+            # Acepta formato ISO YYYY-MM-DD
+            bd = datetime.fromisoformat(data["birth_day"]).date()
+        except Exception:
+            return jsonify({"message": "Formato inválido en birth_day. Use YYYY-MM-DD"}), 400
+
         new_user = User(
             first_name=data["first_name"],
             second_name=data.get("second_name"),
             first_surname=data["first_surname"],
             second_surname=data.get("second_surname"),
-            birth_day=data["birth_day"],
+            birth_day=bd,
             phone=data.get("phone"),
             email=data["email"],
             password=generate_password_hash(data["password"]),
@@ -172,7 +180,28 @@ def login():
     password = data.get("password")
 
     user = User.query.filter_by(email=email).first()
-    if not user or not check_password_hash(user.password, password):
+    # Intento normal con hash (Werkzeug genera formatos tipo 'pbkdf2:sha256:...')
+    password_ok = False
+    if user:
+        try:
+            password_ok = check_password_hash(user.password, password)
+        except Exception:
+            # Si el formato del password almacenado no es un hash reconocido, se intenta fallback
+            password_ok = False
+
+        # Fallback para usuarios legacy con contraseña en texto plano (sin prefijos típicos ':')
+        # Detectamos un posible password plano si no contiene ':' y su longitud es relativamente corta
+        if not password_ok and user.password and ':' not in user.password:
+            if user.password == password:
+                # Upgrade automático: re-hash y guardar para futuras sesiones más seguras
+                try:
+                    user.password = generate_password_hash(password)
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+                password_ok = True
+
+    if not user or not password_ok:
         raise APIException("Credenciales inválidas", status_code=401)
 
     access_token = create_access_token(identity=str(
@@ -440,6 +469,42 @@ def get_student_requests():
         })
 
     return jsonify(result), 200
+
+# 10.1 EPT estado de solicitud del estudiante hacia un profesional
+
+
+@api.route('/student/professional_request_status', methods=['GET'])
+@student_required
+def student_professional_request_status():
+    """Devuelve el estado de la solicitud de validación del estudiante.
+
+    Respuesta:
+    - { status: 'none' } si no hay solicitud activa
+    - { status: 'requested', professional_id: <id> } si hay solicitud activa
+    """
+    student = User.query.get(get_jwt_identity())
+    data = ProfessionalStudentData.query.filter_by(user_id=student.id).first()
+    if not data or not data.requested_professional_id:
+        return jsonify({"status": "none"}), 200
+    return jsonify({
+        "status": "requested",
+        "professional_id": data.requested_professional_id
+    }), 200
+
+
+@api.route('/student/cancel_professional_request', methods=['DELETE'])
+@student_required
+def cancel_professional_request():
+    """Cancela la solicitud activa del estudiante hacia un profesional."""
+    student = User.query.get(get_jwt_identity())
+    data = ProfessionalStudentData.query.filter_by(user_id=student.id).first()
+    if not data or not data.requested_professional_id:
+        return jsonify({"error": "No tienes una solicitud activa"}), 400
+
+    data.requested_professional_id = None
+    data.requested_at = None
+    db.session.commit()
+    return jsonify({"message": "Solicitud cancelada correctamente"}), 200
 
 
 # 11 EPT para obtener el expediente médico de un paciente
