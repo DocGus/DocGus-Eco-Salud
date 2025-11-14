@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 // Pantalla para profesionales: revisar expedientes enviados por estudiantes.
 // Endpoints:
@@ -12,6 +13,7 @@ const StudentFilesReview = () => {
   const [reviewFiles, setReviewFiles] = useState([]); // Lista de expedientes a revisar
   const [comments, setComments] = useState({}); // Comentarios por expediente: { [fileId]: string }
   const [error, setError] = useState(null); // Mensaje de error general de la pantalla
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchReviewFiles = async () => {
@@ -80,19 +82,13 @@ const StudentFilesReview = () => {
                 <td>{file.patient_name}</td>
                 <td>{file.student_name}</td>
                 <td>
-                  {file.snapshots && file.snapshots.length > 0 ? (
-                    <a href={file.snapshots?.[0]?.url || '#'} target="_blank" rel="noreferrer">
-                      {file.snapshots?.[0] ? (
-                        <img
-                          src={file.snapshots?.[0]?.url}
-                          alt={`snapshot-${file.id}`}
-                          loading="lazy"
-                          style={{ width: 80, height: 80, objectFit: 'cover' }}
-                          // Fallback visual si la imagen no carga: muestra miniatura por defecto
-                          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `${backendUrl}/assets/preview.png`; }}
-                        />
-                      ) : 'Ver'}
-                    </a>
+                  {file.snapshots && file.snapshots.length > 0 && file.snapshots[0]?.url ? (
+                    <button
+                      className="btn btn-info btn-sm"
+                      onClick={() => navigate("/dashboard/professional/snapshot_viewer", { state: { snapshotUrl: file.snapshots[0].url, fileId: file.id } })}
+                    >
+                      Ver snapshot
+                    </button>
                   ) : (
                     <span>No snapshot</span>
                   )}

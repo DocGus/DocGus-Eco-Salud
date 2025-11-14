@@ -541,8 +541,10 @@ const BackgroundForm = ({ medicalFileId }) => {
       }
 
       const element = document.querySelector("form");
-      const canvas = await html2canvas(element);
+      // Captura a mayor resolución
+      const canvas = await html2canvas(element, { scale: 4 });
       const dataUrl = canvas.toDataURL("image/png");
+      console.log("[DIAGNÓSTICO] Snapshot base64 generado:", dataUrl);
 
       const snapshotRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/upload_snapshot/${medicalFileId}`, {
         method: "POST",

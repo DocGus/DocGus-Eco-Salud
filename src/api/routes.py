@@ -670,9 +670,8 @@ def upload_snapshot(file_id):
                     file_path = os.path.join(UPLOAD_FOLDER, filename)
                     with open(file_path, 'wb') as fh:
                         fh.write(base64.b64decode(encoded))
-                    host = request.host_url.rstrip('/')
-                    # Importante: incluir prefijo /api por el Blueprint
-                    cloud_url = f"{host}/api/uploads/{filename}"
+                    # Usar siempre ruta relativa para evitar problemas de dominio/protocolo
+                    cloud_url = f"/api/uploads/{filename}"
                 except Exception as e:
                     print(f"Failed saving data URL locally: {e}")
             # Si Cloudinary está configurado, intentar subir y preferir secure_url
@@ -919,7 +918,14 @@ def get_review_files():
             "patient_name": f"{patient.first_name} {patient.first_surname}",
             "student_id": student.id,
             "student_name": f"{student.first_name} {student.first_surname}",
-            "snapshots": [s.url for s in f.snapshots] if f.snapshots else [],
+            "snapshots": [
+                {
+                    "id": s.id,
+                    "url": s.url,
+                    "created_at": s.created_at.isoformat() if s.created_at else None,
+                    "uploaded_by_id": s.uploaded_by_id
+                } for s in f.snapshots
+            ] if f.snapshots else [],
         })
 
     return jsonify(result), 200

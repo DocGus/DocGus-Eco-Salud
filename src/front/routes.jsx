@@ -27,6 +27,7 @@ import ValidationPatientRequest from "./pages/ValidationPatientRequest.jsx";
 import StudentPatientProgress from "./pages/StudentPatientProgress.jsx";
 import ValidationStudentRequest from "./pages/ValidationStudentRequest.jsx";
 import StudentFilesReview from "./pages/StudentFilesReview.jsx";
+import SnapshotViewer from "./pages/SnapshotViewer.jsx";
 import ConfirmFile from "./pages/ConfirmFile.jsx"; // Confirmación del paciente sobre expediente aprobado
 import EcosistemPatient from "./pages/EcosistemPatient.jsx"; // Renombrado desde EcosystemAcademic (archivo físico)
 import EcosystemProfessional from "./pages/EcosystemProfessional.jsx";
@@ -57,6 +58,7 @@ export const router = createBrowserRouter(
         <Route path="professional/validate_students" element={<ValidationStudentRequest />} />
         {/* Revisión profesional: lista expedientes en estado review con snapshot */}
         <Route path="professional/review_files" element={<StudentFilesReview />} />
+        <Route path="professional/snapshot_viewer" element={<SnapshotViewer />} />
         <Route path="patient" element={<PatientDash />} />
         <Route path="patient/request_student" element={<PatientRequestStudent />} />
         {/* Confirmación del paciente: visualiza snapshot y confirma/rechaza */}
