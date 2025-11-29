@@ -5,7 +5,7 @@ click==8.1.7
 cloudinary==1.40.0
 Flask==3.0.3
 Flask-Admin==1.6.1
-Flask-Cors==4.0.1
+Flask-Cors==6.0.0
 Flask-Migrate==4.0.7
 Flask-SQLAlchemy==3.1.1
 flask-swagger==0.2.14
@@ -22,6 +22,7 @@ python-editor==1.0.4
 PyYAML==6.0.2
 six==1.16.0
 SQLAlchemy==2.0.36
-urllib3==2.2.3
+urllib3==2.5.0
+idna==3.7
 Werkzeug==3.0.3
 WTForms==3.1.2
