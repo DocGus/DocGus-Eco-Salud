@@ -16,9 +16,22 @@ from sqlalchemy import create_engine, text, bindparam
 
 app = Flask(__name__)
 
-# Configuración JWT
-app.config["JWT_SECRET_KEY"] = "ZkV-hpLWLgVXEXmPu4I0gJY8NdW0cn4UK-ZOjQgoMR4"
+# Ambiente (evaluado temprano para decidir comportamiento en dev/prod)
+ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
+
+# Configuración JWT: preferir variable de entorno. En production es obligatoria.
+jwt_secret = os.getenv("JWT_SECRET_KEY") or os.getenv("FLASK_APP_KEY")
+if ENV == "production" and not jwt_secret:
+    raise RuntimeError("JWT_SECRET_KEY environment variable is required in production")
+app.config["JWT_SECRET_KEY"] = jwt_secret or "ZkV-hpLWLgVXEXmPu4I0gJY8NdW0cn4UK-ZOjQgoMR4"
 jwt = JWTManager(app)
+
+# Secret key para sesiones/firmas de Flask
+# Preferir variable de entorno `FLASK_SECRET_KEY` o `APP_SECRET_KEY`. En producción es obligatoria.
+flask_secret = os.getenv('FLASK_SECRET_KEY') or os.getenv('APP_SECRET_KEY')
+if ENV == 'production' and not flask_secret:
+    raise RuntimeError('FLASK_SECRET_KEY (or APP_SECRET_KEY) is required in production')
+app.secret_key = flask_secret or os.getenv('FLASK_DEV_SECRET', 'dev-secret-for-local')
 
 # ✅ Configuración CORS correcta (sola, no duplicada)
 CORS(
@@ -28,8 +41,8 @@ CORS(
     supports_credentials=True
 )
 
-# Ambiente
-ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
+# Ambiente (ya evaluado arriba)
+# ENV variable ya fue establecida en la sección de configuración JWT
 
 # Directorio de archivos estáticos (build)
 static_file_dir = os.path.join(os.path.dirname(

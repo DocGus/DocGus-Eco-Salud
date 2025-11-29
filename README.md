@@ -43,14 +43,14 @@ Consultar el estado de validaciones.
 Confirmar o rechazar expedientes.
 
 ⚙️ Tecnologías utilizadas
-Área	Tecnologías
-Frontend	React 18.2 + Vite 4.4, React Router DOM
-Backend	Flask 1.1.2, SQLAlchemy, Alembic
-Base de datos	PostgreSQL (via Docker)
-Autenticación	JWT (flask_jwt_extended)
-Despliegue	Render / Heroku con Gunicorn
-Almacenamiento	Cloudinary
-Pruebas (opcional)	Cypress 12.x
+Área Tecnologías
+Frontend React 18.2 + Vite 4.4, React Router DOM
+Backend Flask 1.1.2, SQLAlchemy, Alembic
+Base de datos PostgreSQL (via Docker)
+Autenticación JWT (flask_jwt_extended)
+Despliegue Render / Heroku con Gunicorn
+Almacenamiento Cloudinary
+Pruebas (opcional) Cypress 12.x
 🧩 Estructura del proyecto
 /
 ├─ Dockerfile.render
@@ -59,19 +59,18 @@ Pruebas (opcional)	Cypress 12.x
 ├─ package.json / requirements.txt
 ├─ render.yaml
 ├─ public/
-│  └─ index.html
+│ └─ index.html
 ├─ docs/
-│  ├─ CHANGE_LOG.md
-│  └─ HELP.md
+│ ├─ CHANGE_LOG.md
+│ └─ HELP.md
 └─ src/
-   ├─ app.py / wsgi.py
-   ├─ api/
-   │  ├─ models.py / routes.py / utils.py
-   └─ front/
-      ├─ main.jsx / routes.jsx / store.js
-      ├─ components/
-      └─ pages/
-
+├─ app.py / wsgi.py
+├─ api/
+│ ├─ models.py / routes.py / utils.py
+└─ front/
+├─ main.jsx / routes.jsx / store.js
+├─ components/
+└─ pages/
 
 💡 Nota: El frontend está implementado en JavaScript (JSX).
 Si se desea agregar validaciones tipadas, puede añadirse src/front/utils/validator.js o migrar gradualmente a TypeScript en el futuro.
@@ -94,6 +93,7 @@ cd DocGus-Eco-Salud
 2️⃣ Configurar el frontend
 npm install
 npm run dev
+
 # Abre http://localhost:3000
 
 3️⃣ Configurar el backend
@@ -103,15 +103,14 @@ pip install -r requirements.txt
 export FLASK_APP=src/app.py
 flask run -p 3001 -h 0.0.0.0
 
-
 Si no se define DATABASE_URL, el backend usará SQLite de forma temporal.
 
 4️⃣ Base de datos con Docker
 docker run -d --name docgus-postgres \
-  -e POSTGRES_USER=gitpod \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=example \
-  -p 5432:5432 postgres:13
+ -e POSTGRES_USER=gitpod \
+ -e POSTGRES_PASSWORD=postgres \
+ -e POSTGRES_DB=example \
+ -p 5432:5432 postgres:13
 
 export DATABASE_URL="postgres://gitpod:postgres@localhost:5432/example"
 flask db upgrade
@@ -122,22 +121,19 @@ Instalar y configurar Cypress para pruebas end-to-end (E2E):
 
 npm install --save-dev cypress@^12.0.0
 
-
 Agregar scripts en package.json:
 
 "scripts": {
-  "cypress:open": "cypress open",
-  "cypress:run": "cypress run"
+"cypress:open": "cypress open",
+"cypress:run": "cypress run"
 }
-
 
 Estructura sugerida:
 
 cypress/
-  e2e/
-    login.spec.js
-    register.spec.js
-
+e2e/
+login.spec.js
+register.spec.js
 
 🔎 Observación: Cypress no está presente en el repositorio.
 Se recomienda integrarlo (versión 12.x o superior) si deseas automatizar pruebas E2E y verificar el funcionamiento completo de la aplicación.
@@ -152,13 +148,29 @@ Integrar CI/CD (GitHub Actions) para pruebas y despliegues automáticos.
 
 Centralizar validaciones del frontend en src/front/utils/validator.js.
 
+## Production checklist (pendientes al pasar a producción)
+
+Estos son pasos y decisiones que deben completarse antes de desplegar a producción.
+
+- **Secrets obligatorios:** establecer `JWT_SECRET_KEY` (y `FLASK_SECRET_KEY` si aplica) en el entorno de producción; eliminar cualquier fallback hardcodeado. Generar claves seguras (por ejemplo `openssl rand -hex 32`).
+- **Variables de entorno:** revisar y fijar `DATABASE_URL`, `CLOUDINARY_*` (si se usa), `AUTO_CREATE_SCHEMA=0` en producción y `MIGRATE_ON_START` según estrategia de migraciones.
+- **Migraciones:** ejecutar `flask db upgrade` contra la base de datos de producción tras revisar versiones de Alembic en `migrations/versions/`.
+- **Uploads y almacenamiento:** decidir si los snapshots se almacenan en Cloudinary (recomendado) o en disco. Si se usa disco, asegúrate de que la ruta `uploads/` esté en un volumen persistente y con permisos correctos.
+- **TLS / dominio:** configurar HTTPS y cabeceras seguras (HSTS, X-Content-Type-Options, etc.) en el proxy/ingress (NGINX, Render, Cloud Run, etc.).
+- **Backups y retención:** planificar backups regulares de la base de datos y retención de snapshots (si se almacenan localmente).
+- **Auditoría y logging:** integrar logs estructurados y rotación (ej. json logs + logrotate/Cloud Logging) y revisar accesos a endpoints sensibles.
+- **Límites y validación:** añadir validación y límites para `upload_snapshot` (ej. tipos MIME permitidos, tamaño máximo 5MB por imagen) y protección ante payloads maliciosos.
+- **CI/CD y pruebas:** integrar GitHub Actions para ejecutar `pytest`, linter y build del frontend; añadir smoke tests E2E en staging.
+- **Revisión de dependencias:** ejecutar auditoría de dependencias (`pip-audit`, `npm audit`) y fijar versiones aprobadas.
+
+Mantendré los cambios en rama de desarrollo y dejaré los pasos de producción listados como pendientes hasta tu aprobación para merge.
 👨‍💻 Autor
 
 Gustavo Andrés Santoyo Benavides (DocGus)
 Desarrollador Full-Stack con formación médica.
 📍 México
 🔗 LinkedIn
- | GitHub
+| GitHub
 
 DocGus combina el conocimiento médico y tecnológico para construir herramientas que mejoran la gestión educativa y clínica.
 

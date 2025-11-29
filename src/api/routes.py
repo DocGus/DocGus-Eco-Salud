@@ -537,15 +537,18 @@ def get_medical_file(file_id):
 # 12 EPT para guardar antecedentes médicos
 
 
-@api.route('/api/backgrounds', methods=['POST'])
+@api.route('/backgrounds/save', methods=['POST'])
 @jwt_required()
 def save_backgrounds():
     """Guarda/actualiza antecedentes en un expediente existente (sin cambiar estado).
 
-    Nota: esta ruta tiene prefijo "/api" en su path literal dentro del blueprint,
-    por lo que se expone como "/api/api/backgrounds". Se mantiene por compatibilidad.
+    Nota: la ruta anterior estaba registrada como literal '/api/backgrounds'
+    lo que producía la exposición como '/api/api/backgrounds'. Para evitar
+    confusión se mueve a '/backgrounds/save' (expone '/api/backgrounds/save').
+    Se mantiene compatibilidad aceptando tanto la clave del payload
+    `patological_background` (legacy typo) como `pathological_background`.
     """
-    data = request.get_json()
+    data = request.get_json() or {}
 
     medical_file_id = data.get("medical_file_id")
     if not medical_file_id:
@@ -568,7 +571,9 @@ def save_backgrounds():
                 setattr(medical_file.non_pathological_background, key, value)
 
     # ---------- Pathological Background ----------
-    path_data = data.get("patological_background")
+    # Aceptar la clave con el typo legacy 'patological_background' y la forma correcta
+    path_data = data.get("pathological_background") or data.get(
+        "patological_background")
     if path_data:
         if not medical_file.pathological_background:
             from api.models import PathologicalBackground
@@ -665,11 +670,28 @@ def upload_snapshot(file_id):
                     header, encoded = snapshot_url.split(',', 1)
                     mime = header.split(';')[0].split(
                         ':')[1] if ';' in header else header.split(':')[1]
+
+                    # Validación de tipo MIME permitido
+                    allowed_mimes = {"image/png", "image/jpeg",
+                                     "image/jpg", "image/webp"}
+                    if mime.lower() not in allowed_mimes:
+                        return jsonify({"error": f"Tipo MIME no permitido: {mime}. Tipos permitidos: {sorted(list(allowed_mimes))}"}), 400
+
+                    # Decodificar base64 en memoria y validar tamaño antes de escribir
+                    try:
+                        decoded = base64.b64decode(encoded)
+                    except Exception:
+                        return jsonify({"error": "snapshot_url no es un data URL base64 válido"}), 400
+
+                    MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+                    if len(decoded) > MAX_BYTES:
+                        return jsonify({"error": "Snapshot excede el tamaño máximo permitido (5MB)"}), 413
+
                     ext = mime.split('/')[-1] if '/' in mime else 'png'
                     filename = f"{uuid.uuid4().hex}.{secure_filename(ext)}"
                     file_path = os.path.join(UPLOAD_FOLDER, filename)
                     with open(file_path, 'wb') as fh:
-                        fh.write(base64.b64decode(encoded))
+                        fh.write(decoded)
                     # Usar siempre ruta relativa para evitar problemas de dominio/protocolo
                     cloud_url = f"/api/uploads/{filename}"
                 except Exception as e:
@@ -806,7 +828,10 @@ def create_backgrounds():
     # Limpiar datos
     non_path_data = clean_empty_strings(
         data.get("non_pathological_background", {}))
-    path_data = clean_empty_strings(data.get("patological_background", {}))
+    # Aceptar tanto 'pathological_background' (correcto) como
+    # 'patological_background' (legacy/typo) en el payload
+    path_data = clean_empty_strings(
+        data.get("pathological_background", {}) or data.get("patological_background", {}))
     family_data = clean_empty_strings(data.get("family_background", {}))
     gyneco_data = clean_empty_strings(data.get("gynecological_background", {}))
     personal_data = clean_empty_strings(data.get("personal_data", {}))
