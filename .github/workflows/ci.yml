@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, '**' ]
+    branches: [main, "**"]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -19,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Cache pip
         uses: actions/cache@v4
@@ -32,7 +32,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: "18"
 
       - name: Cache node modules
         uses: actions/cache@v4
@@ -55,7 +55,7 @@ jobs:
       - name: Run Python tests
         env:
           # Evitar que la app exija secretos en CI; en producción usar secrets en Settings
-          FLASK_DEBUG: '1'
+          FLASK_DEBUG: "1"
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY || 'ci-jwt-secret' }}
           FLASK_SECRET_KEY: ${{ secrets.FLASK_SECRET_KEY || 'ci-flask-secret' }}
         run: |
@@ -77,7 +77,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install pip-audit
         run: |
@@ -86,15 +86,17 @@ jobs:
 
       - name: Run pip-audit (Python dependencies)
         run: |
-          pip-audit --format=stylized || true
+          # Fail the job if any vulnerability with severity >= high is found
+          pip-audit --fail-on high || (echo "pip-audit found high/critical vulns" && exit 1)
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: "18"
 
       - name: Install frontend deps and run npm audit
         if: ${{ always() && (exists('package.json')) }}
         run: |
           npm ci --silent || true
-          npm audit --audit-level=moderate || true
+          # Fail if vulnerabilities with severity >= high are found
+          npm audit --audit-level=high || (echo "npm audit found high/critical vulns" && exit 1)
