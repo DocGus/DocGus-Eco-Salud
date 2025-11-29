@@ -9,7 +9,6 @@ const StudentPatientRequests = () => {
 
   const navigate = useNavigate();
 
-  // Obtener solicitudes
   const fetchRequests = async () => {
     setLoading(true);
     setError(null);
@@ -37,7 +36,6 @@ const StudentPatientRequests = () => {
     fetchRequests();
   }, []);
 
-  // Manejar aceptar o rechazar
   const handleAction = async (patientId, action) => {
     setError(null);
     setActionMessage(null);
@@ -60,10 +58,8 @@ const StudentPatientRequests = () => {
         setActionMessage(data.message);
 
         if (action === 'approve') {
-          // Redirigir al formulario de entrevista con el patientId (o medicalFileId si lo tienes)
           navigate(`/dashboard/student/interview/${patientId}`);
         } else {
-          // Solo refrescar solicitudes si es rechazo
           fetchRequests();
         }
       }

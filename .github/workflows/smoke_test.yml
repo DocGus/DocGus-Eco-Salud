@@ -1,0 +1,52 @@
+name: Smoke test (script)
+
+on:
+  push:
+    branches: [main, segunda-rama-detalles]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Set up Docker Compose
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and start services (smoke)
+        run: |
+          docker compose -f docker-compose.test.yml up -d --build web
+          echo "Waiting for backend to be ready..."
+          for i in $(seq 1 40); do
+            if curl -sS http://127.0.0.1:3001/api > /dev/null; then
+              echo "Backend ready"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run smoke test script (against container)
+        run: |
+          # Ejecutar el script desde el runner apuntando al backend en el contenedor
+          python tmp/smoke_test.py
+
+      - name: Collect web logs
+        if: always()
+        run: |
+          docker compose -f docker-compose.test.yml logs web > server.log || true
+        continue-on-error: true
+
+      - name: Upload server log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-log
+          path: server.log

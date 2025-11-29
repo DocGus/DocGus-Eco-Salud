@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/bootstrap.css";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -40,7 +42,15 @@ const Register = () => {
     setError("");
     setSuccess("");
 
-    if (!formData.first_name || !formData.first_surname || !formData.birth_day || !formData.email || !formData.password || !formData.role) {
+    if (
+      !formData.first_name ||
+      !formData.first_surname ||
+      !formData.birth_day ||
+      !formData.email ||
+      !formData.password ||
+      !formData.phone ||
+      !formData.role
+    ) {
       setError("Por favor llena todos los campos obligatorios.");
       return;
     }
@@ -99,9 +109,8 @@ const Register = () => {
               { label: "Primer Apellido", name: "first_surname", type: "text", required: true },
               { label: "Segundo Apellido", name: "second_surname", type: "text" },
               { label: "Fecha de Nacimiento", name: "birth_day", type: "date", required: true },
-              { label: "Teléfono", name: "phone", type: "tel" },
               { label: "Correo Electrónico", name: "email", type: "email", required: true },
-              { label: "Contraseña", name: "password", type: "password", required: true },
+              { label: "Contraseña", name: "password", type: "password", required: true }
             ].map(field => (
               <div className="col-12 col-md-6 col-lg-4" key={field.name}>
                 <label className="form-label text-white">{field.label}</label>
@@ -116,6 +125,26 @@ const Register = () => {
                 />
               </div>
             ))}
+
+            {/* Campo Teléfono con bandera y lada */}
+            <div className="col-12 col-md-6 col-lg-4">
+              <label className="form-label text-white">Teléfono (WhatsApp)</label>
+              <PhoneInput
+                country={"mx"}
+                enableSearch
+                value={formData.phone}
+                onChange={(phone) => setFormData(prev => ({ ...prev, phone }))}
+                inputStyle={{
+                  backgroundColor: "#495057",
+                  color: "#fff",
+                  border: "1px solid #fff",
+                  width: "100%"
+                }}
+                containerStyle={{ width: "100%" }}
+                inputClass="form-control"
+                specialLabel=""
+              />
+            </div>
 
             {/* Campos académicos para professional y student */}
             {(formData.role === "professional" || formData.role === "student") && (

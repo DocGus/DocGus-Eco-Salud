@@ -147,7 +147,7 @@ class ProfessionalStudentData(db.Model):
     
     institution: Mapped[str] = mapped_column(String(100), nullable=False)
     career: Mapped[str] = mapped_column(String(100), nullable=False)
-    academic_grade_prof: Mapped[AcademicGradeProf] = mapped_column(Enum(AcademicGradeProf), nullable=False)
+    academic_grade_prof: Mapped[AcademicGradeProf] = mapped_column(Enum(AcademicGradeProf), nullable=True)
     register_number: Mapped[str] = mapped_column(String(30), nullable=False)
 
     # -------- VALIDACIÓN DEL ADMIN AL PROFESSIONAL --------

@@ -1,0 +1,72 @@
+name: Integration tests (pytest + docker-compose)
+
+on:
+  push:
+    branches: [main, segunda-rama-detalles]
+  pull_request:
+    branches: [main]
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      docker:
+        image: docker:24.0.0
+        options: --privileged
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Compose
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and start services
+        run: |
+          docker compose -f docker-compose.test.yml up -d --build
+          echo "Waiting for web to be ready..."
+          for i in $(seq 1 40); do
+            if curl -sS http://127.0.0.1:3001/api > /dev/null; then
+              echo "Web ready"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run migrations inside web container
+        run: |
+          # Ejecutar migraciones en el contenedor del servicio ya levantado
+          docker compose -f docker-compose.test.yml exec -T web flask db upgrade || true
+
+      - name: Run pytest inside web container
+        id: run_tests
+        run: |
+          set -o pipefail
+          # Ejecutar pytest dentro del contenedor del servicio en ejecución (exec -T evita alocar TTY)
+          docker compose -f docker-compose.test.yml exec -T web pytest -q 2>&1 | tee pytest.log
+          echo "pytest_exit_code=$?" > rc.txt
+
+      - name: Upload pytest log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-log
+          path: pytest.log
+
+      - name: Upload web container logs on failure
+        if: failure()
+        run: |
+          docker compose -f docker-compose.test.yml logs web > web-logs.txt || true
+          echo "Uploaded web logs"
+        continue-on-error: true
+      - name: Upload web logs artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-logs
+          path: web-logs.txt
+
+      - name: Tear down
+        if: always()
+        run: |
+          docker compose -f docker-compose.test.yml down -v
