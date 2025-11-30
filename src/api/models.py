@@ -3,7 +3,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import String, Integer, Boolean, DateTime, ForeignKey, Enum, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 import enum
 
 db = SQLAlchemy()
@@ -243,7 +243,7 @@ class MedicalFile(db.Model):
     student_rejected_patient = relationship("User", foreign_keys=[student_rejected_patient_id])
 
     progressed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    progressed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    progressed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     reviewed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     reviewed_at = db.Column(db.DateTime)
@@ -319,7 +319,7 @@ class MedicalFileSnapshot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     medical_file_id = db.Column(db.Integer, db.ForeignKey('medical_file.id', ondelete="CASCADE"), nullable=False)
     url = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     uploaded_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     # Relaciones

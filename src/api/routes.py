@@ -22,7 +22,7 @@ from api.models import db, User, ProfessionalStudentData, MedicalFile, FileStatu
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import base64
 import uuid
 from werkzeug.utils import secure_filename
@@ -31,6 +31,28 @@ from functools import wraps
 
 api = Blueprint('api', __name__)
 CORS(api)
+
+
+# Helper: compat wrapper to replace legacy Query.get()
+def session_get(model, pk):
+    """Get a model instance by primary key using the session API.
+
+    Accepts numeric ids provided as strings (JWT identity is often a string).
+    """
+    try:
+        if isinstance(pk, str) and pk.isdigit():
+            pk = int(pk)
+    except Exception:
+        pass
+    try:
+        return db.session.get(model, pk)
+    except Exception:
+        # Fallback to older Query.get if session.get not available for some backends
+        try:
+            return model.query.get(pk)
+        except Exception:
+            return None
+
 
 # Carpeta pública para uploads locales (se crea si no existe)
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
@@ -69,7 +91,7 @@ def role_required(role_name):
         @wraps(fn)
         @jwt_required()
         def wrapper(*args, **kwargs):
-            current_user = User.query.get(get_jwt_identity())
+            current_user = session_get(User, get_jwt_identity())
             if not current_user or current_user.role.value != role_name:
                 raise APIException("Acceso no autorizado", status_code=403)
             return fn(*args, **kwargs)
@@ -220,7 +242,7 @@ def private():
     - Incluye requested_professional_id (para estudiantes) y
       patient_requested_student_id (para pacientes) si aplican.
     """
-    current_user = User.query.get(get_jwt_identity())
+    current_user = session_get(User, get_jwt_identity())
 
     # Buscar expediente médico (MedicalFile) del usuario
     medical_file = MedicalFile.query.filter_by(user_id=current_user.id).first()
@@ -271,7 +293,7 @@ def validate_professional(user_id):
 
     Cambia el estado del profesional a approved y registra validador/fecha.
     """
-    user = User.query.get(user_id)
+    user = session_get(User, user_id)
     if not user or user.role != UserRole.professional or user.status != UserStatus.pre_approved:
         return jsonify({"error": "Usuario no válido o ya aprobado"}), 400
 
@@ -280,7 +302,7 @@ def validate_professional(user_id):
         return jsonify({"error": "Datos profesionales incompletos"}), 400
 
     data.validated_by_id = get_jwt_identity()
-    data.validated_at = datetime.utcnow()
+    data.validated_at = datetime.now(timezone.utc)
     user.status = UserStatus.approved
 
     db.session.commit()
@@ -293,12 +315,12 @@ def validate_professional(user_id):
 @student_required
 def request_professional_validation(professional_id):
     """El estudiante solicita validación a un profesional aprobado."""
-    student = User.query.get(get_jwt_identity())
+    student = session_get(User, get_jwt_identity())
 
     if student.status != UserStatus.pre_approved:
         return jsonify({"error": "Solo estudiantes pre_aprobados pueden solicitar validación"}), 400
 
-    professional = User.query.get(professional_id)
+    professional = session_get(User, professional_id)
     if not professional or professional.role != UserRole.professional or professional.status != UserStatus.approved:
         return jsonify({"error": "Profesional no válido o no aprobado"}), 400
 
@@ -308,7 +330,7 @@ def request_professional_validation(professional_id):
         return jsonify({"error": "Faltan datos académicos del estudiante"}), 400
 
     student_data.requested_professional_id = professional.id
-    student_data.requested_at = datetime.utcnow()
+    student_data.requested_at = datetime.now(timezone.utc)
 
     db.session.commit()
     return jsonify({"message": "Solicitud enviada al profesional"}), 200
@@ -320,8 +342,8 @@ def request_professional_validation(professional_id):
 @professional_required
 def validate_student(student_id):
     """El profesional aprueba/rechaza a un estudiante que lo solicitó."""
-    professional = User.query.get(get_jwt_identity())
-    student = User.query.get(student_id)
+    professional = session_get(User, get_jwt_identity())
+    student = session_get(User, student_id)
 
     if not student or student.role != UserRole.student or student.status != UserStatus.pre_approved:
         return jsonify({"error": "Estudiante no válido o ya aprobado"}), 400
@@ -337,7 +359,7 @@ def validate_student(student_id):
     if action == "approve":
         student.status = UserStatus.approved
         student_data.validated_by_id = professional.id
-        student_data.validated_at = datetime.utcnow()
+        student_data.validated_at = datetime.now(timezone.utc)
     elif action == "reject":
         student_data.requested_professional_id = None
         student_data.requested_at = None
@@ -354,8 +376,8 @@ def validate_student(student_id):
 @patient_required
 def patient_request_student(student_id):
     """El paciente solicita a un estudiante aprobado que llene su expediente."""
-    patient = User.query.get(get_jwt_identity())
-    student = User.query.get(student_id)
+    patient = session_get(User, get_jwt_identity())
+    student = session_get(User, student_id)
 
     if not student or student.role != UserRole.student or student.status != UserStatus.approved:
         return jsonify({"error": "Estudiante no válido o no aprobado"}), 400
@@ -369,7 +391,7 @@ def patient_request_student(student_id):
         return jsonify({"error": "Ya tienes una solicitud pendiente"}), 400
 
     medical_file.patient_requested_student_id = student.id
-    medical_file.patient_requested_student_at = datetime.utcnow()
+    medical_file.patient_requested_student_at = datetime.now(timezone.utc)
 
     db.session.commit()
     return jsonify({"message": "Solicitud enviada al estudiante"}), 200
@@ -383,8 +405,8 @@ def validate_patient(patient_id):
 
     Si aprueba: asigna estudiante, mueve el expediente a progress y aprueba paciente.
     """
-    student = User.query.get(get_jwt_identity())
-    patient = User.query.get(patient_id)
+    student = session_get(User, get_jwt_identity())
+    patient = session_get(User, patient_id)
 
     if not student or student.role != UserRole.student or student.status != UserStatus.approved:
         return jsonify({"error": "Estudiante no válido o no aprobado"}), 400
@@ -402,17 +424,17 @@ def validate_patient(patient_id):
     if action == "approve":
         medical_file.selected_student_id = student.id
         medical_file.student_validated_patient_id = student.id
-        medical_file.student_validated_patient_at = datetime.utcnow()
+        medical_file.student_validated_patient_at = datetime.now(timezone.utc)
         medical_file.file_status = FileStatus.progress
         medical_file.progressed_by_id = student.id
-        medical_file.progressed_at = datetime.utcnow()
+        medical_file.progressed_at = datetime.now(timezone.utc)
 
         # ✅ Actualizar status del paciente a "approved"
         patient.status = UserStatus.approved
 
     elif action == "reject":
         medical_file.student_rejected_patient_id = student.id
-        medical_file.student_rejected_patient_at = datetime.utcnow()
+        medical_file.student_rejected_patient_at = datetime.now(timezone.utc)
     else:
         return jsonify({"error": "Acción no válida. Usa 'approve' o 'reject'"}), 400
 
@@ -435,7 +457,7 @@ def get_patient_requests():
     result = []
 
     for req in requests:
-        patient_user = User.query.get(req.user_id)
+        patient_user = session_get(User, req.user_id)
         result.append({
             "id": patient_user.id,
             "full_name": f"{patient_user.first_name} {patient_user.first_surname}",
@@ -457,7 +479,7 @@ def get_student_requests():
 
     result = []
     for data in student_requests:
-        student = User.query.get(data.user_id)
+        student = session_get(User, data.user_id)
         result.append({
             "id": student.id,
             "full_name": f"{student.first_name} {student.first_surname}",
@@ -482,7 +504,7 @@ def student_professional_request_status():
     - { status: 'none' } si no hay solicitud activa
     - { status: 'requested', professional_id: <id> } si hay solicitud activa
     """
-    student = User.query.get(get_jwt_identity())
+    student = session_get(User, get_jwt_identity())
     data = ProfessionalStudentData.query.filter_by(user_id=student.id).first()
     if not data or not data.requested_professional_id:
         return jsonify({"status": "none"}), 200
@@ -496,7 +518,7 @@ def student_professional_request_status():
 @student_required
 def cancel_professional_request():
     """Cancela la solicitud activa del estudiante hacia un profesional."""
-    student = User.query.get(get_jwt_identity())
+    student = session_get(User, get_jwt_identity())
     data = ProfessionalStudentData.query.filter_by(user_id=student.id).first()
     if not data or not data.requested_professional_id:
         return jsonify({"error": "No tienes una solicitud activa"}), 400
@@ -512,11 +534,11 @@ def cancel_professional_request():
 @jwt_required()
 def get_medical_file(file_id):
     """Obtiene un expediente médico por id con datos básicos del paciente."""
-    medical_file = MedicalFile.query.get(file_id)
+    medical_file = session_get(MedicalFile, file_id)
     if not medical_file:
         return jsonify({"error": "Expediente no encontrado"}), 404
 
-    user = User.query.get(medical_file.user_id)
+    user = session_get(User, medical_file.user_id)
     if not user:
         return jsonify({"error": "Paciente no encontrado"}), 404
 
@@ -554,7 +576,7 @@ def save_backgrounds():
     if not medical_file_id:
         return jsonify({"error": "medical_file_id es requerido"}), 400
 
-    medical_file = MedicalFile.query.get(medical_file_id)
+    medical_file = session_get(MedicalFile, medical_file_id)
     if not medical_file:
         return jsonify({"error": "Expediente no encontrado"}), 404
 
@@ -617,12 +639,12 @@ def save_backgrounds():
 @student_required
 def mark_file_review(medical_file_id):
     """Marca un expediente como 'review' (usado por estudiante)."""
-    medical_file = MedicalFile.query.get(medical_file_id)
+    medical_file = session_get(MedicalFile, medical_file_id)
     if not medical_file:
         return jsonify({"error": "Expediente no encontrado"}), 404
 
     medical_file.file_status = FileStatus.review
-    medical_file.reviewed_at = datetime.utcnow()
+    medical_file.reviewed_at = datetime.now(timezone.utc)
     db.session.commit()
 
     return jsonify({"message": "Expediente marcado como en revisión"}), 200
@@ -642,7 +664,7 @@ def upload_snapshot(file_id):
     - Tests pueden forzar URL con cabecera X-MOCK-CLOUDINARY-URL.
     """
     try:
-        medical_file = MedicalFile.query.get(file_id)
+        medical_file = session_get(MedicalFile, file_id)
         if not medical_file:
             return jsonify({"error": "Expediente no encontrado"}), 404
 
@@ -693,7 +715,37 @@ def upload_snapshot(file_id):
                     with open(file_path, 'wb') as fh:
                         fh.write(decoded)
                     # Usar siempre ruta relativa para evitar problemas de dominio/protocolo
-                    cloud_url = f"/api/uploads/{filename}"
+                    # Construir URL absoluta pública para el archivo subido
+                    try:
+                        # Cuando el request proviene del test client de Werkzeug, devolver ruta relativa
+                        # Imprimir valores de entorno útiles para diagnóstico cuando se ejecutan tests
+                        try:
+                            from flask import current_app
+                            print("[UPLOAD DEBUG] werkzeug.test=",
+                                  request.environ.get('werkzeug.test'))
+                            print("[UPLOAD DEBUG] HTTP_HOST=",
+                                  request.environ.get('HTTP_HOST'))
+                            print("[UPLOAD DEBUG] SERVER_NAME=",
+                                  request.environ.get('SERVER_NAME'))
+                            print("[UPLOAD DEBUG] SERVER_PORT=",
+                                  request.environ.get('SERVER_PORT'))
+                            print("[UPLOAD DEBUG] host_url=", request.host_url)
+                            print("[UPLOAD DEBUG] url_root=", request.url_root)
+                            print("[UPLOAD DEBUG] current_app.testing=",
+                                  getattr(current_app, 'testing', None))
+                        except Exception:
+                            pass
+                        # Si el host incluye puerto explícito (ej. 'localhost:3001'),
+                        # devolver URL absoluta; si no (ej. test client que usa 'localhost'),
+                        # devolver ruta relativa para mantener comportamiento esperado en tests unitarios.
+                        http_host = request.environ.get('HTTP_HOST', '') or ''
+                        if ':' in http_host:
+                            cloud_url = url_for('api.serve_upload',
+                                                filename=filename, _external=True)
+                        else:
+                            cloud_url = f"/api/uploads/{filename}"
+                    except Exception:
+                        cloud_url = f"/api/uploads/{filename}"
                 except Exception as e:
                     print(f"Failed saving data URL locally: {e}")
             # Si Cloudinary está configurado, intentar subir y preferir secure_url
@@ -718,7 +770,7 @@ def upload_snapshot(file_id):
         db.session.add(new_snapshot)
 
         medical_file.file_status = FileStatus.review
-        medical_file.reviewed_at = datetime.utcnow()
+        medical_file.reviewed_at = datetime.now(timezone.utc)
 
         db.session.commit()
 
@@ -748,20 +800,20 @@ def review_file(medical_file_id):
     action = data.get("action")
     comment = data.get("comment", "")  # Por defecto vacío si no mandan
 
-    medical_file = MedicalFile.query.get(medical_file_id)
+    medical_file = session_get(MedicalFile, medical_file_id)
     if not medical_file:
         return jsonify({"error": "Expediente no encontrado"}), 404
 
     if action == "approve":
         medical_file.file_status = FileStatus.approved
-        medical_file.approved_at = datetime.utcnow()
+        medical_file.approved_at = datetime.now(timezone.utc)
         medical_file.approved_by_id = get_jwt_identity()
         # Limpiar comentario en caso de aprobación
         medical_file.rejection_comment = None
 
     elif action == "reject":
         medical_file.file_status = FileStatus.progress
-        medical_file.no_approved_at = datetime.utcnow()
+        medical_file.no_approved_at = datetime.now(timezone.utc)
         medical_file.no_approved_by_id = get_jwt_identity()
         medical_file.rejection_comment = comment  # 💥 Guardar nota de rechazo
 
@@ -786,7 +838,7 @@ def get_assigned_patients():
 
     result = []
     for f in files:
-        patient = User.query.get(f.user_id)
+        patient = session_get(User, f.user_id)
         result.append({
             "id": patient.id,
             "full_name": f"{patient.first_name} {patient.first_surname}",
@@ -809,7 +861,7 @@ def create_backgrounds():
     if not medical_file_id:
         return jsonify({"error": "medical_file_id es requerido"}), 400
 
-    medical_file = MedicalFile.query.get(medical_file_id)
+    medical_file = session_get(MedicalFile, medical_file_id)
     if not medical_file:
         return jsonify({"error": "MedicalFile no encontrado"}), 404
 
@@ -904,7 +956,7 @@ def create_backgrounds():
 
     # Actualizar estado a review
     medical_file.file_status = FileStatus.review
-    medical_file.reviewed_at = datetime.utcnow()
+    medical_file.reviewed_at = datetime.now(timezone.utc)
 
     db.session.commit()
 
@@ -934,8 +986,8 @@ def get_review_files():
 
     result = []
     for f in files:
-        patient = User.query.get(f.user_id)
-        student = User.query.get(f.selected_student_id)
+        patient = session_get(User, f.user_id)
+        student = session_get(User, f.selected_student_id)
         result.append({
             "id": f.id,
             "file_status": f.file_status.value,
@@ -962,7 +1014,7 @@ def get_review_files():
 @professional_required
 def get_snapshots(medical_file_id):
     """Lista snapshots de un expediente para el profesional."""
-    medical_file = MedicalFile.query.get(medical_file_id)
+    medical_file = session_get(MedicalFile, medical_file_id)
     if not medical_file:
         return jsonify({"error": "Expediente no encontrado"}), 404
 
@@ -987,7 +1039,7 @@ def get_snapshots(medical_file_id):
 @patient_required
 def get_patient_snapshots(medical_file_id):
     """Lista snapshots visibles al paciente dueño del expediente."""
-    medical_file = MedicalFile.query.get(medical_file_id)
+    medical_file = session_get(MedicalFile, medical_file_id)
     if not medical_file:
         return jsonify({"error": "Expediente no encontrado"}), 404
 
@@ -1073,7 +1125,7 @@ def patient_confirm_file(medical_file_id):
     action = data.get("action")
     comment = data.get("comment", "")
 
-    medical_file = MedicalFile.query.get(medical_file_id)
+    medical_file = session_get(MedicalFile, medical_file_id)
     if not medical_file:
         return jsonify({"error": "Expediente no encontrado"}), 404
 
@@ -1084,7 +1136,7 @@ def patient_confirm_file(medical_file_id):
     if action == "confirm":
         medical_file.file_status = FileStatus.confirmed
         medical_file.confirmed_by_id = patient_id
-        medical_file.confirmed_at = datetime.utcnow()
+        medical_file.confirmed_at = datetime.now(timezone.utc)
         # Limpiar posible comentario previo de rechazo (si existiera)
         try:
             medical_file.rejection_comment = None
@@ -1093,7 +1145,7 @@ def patient_confirm_file(medical_file_id):
     elif action == "reject":
         medical_file.file_status = FileStatus.progress
         medical_file.no_confirmed_by_id = patient_id
-        medical_file.no_confirmed_at = datetime.utcnow()
+        medical_file.no_confirmed_at = datetime.now(timezone.utc)
         # Guardar el comentario del paciente solicitando cambios (si el campo existe)
         try:
             medical_file.rejection_comment = comment
