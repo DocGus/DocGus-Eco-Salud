@@ -17,21 +17,26 @@ def serialize_datetime(value):
     return value.isoformat()
 
 # -------------------- ENUMS PERSONALIZADOS --------------------
+
+
 class UserRole(str, enum.Enum):
     admin = "admin"
     professional = "professional"
     student = "student"
     patient = "patient"
 
+
 class SexType(str, enum.Enum):
     female = "female"
     male = "male"
     other = "other"
 
+
 class UserStatus(str, enum.Enum):
     pre_approved = "pre_approved"
     approved = "approved"
     inactive = "inactive"
+
 
 class FileStatus(str, enum.Enum):
     empty = "empty"
@@ -39,6 +44,7 @@ class FileStatus(str, enum.Enum):
     review = "review"
     approved = "approved"
     confirmed = "confirmed"
+
 
 class AcademicGradeProf(str, enum.Enum):
     licenciatura = "licenciatura"
@@ -57,14 +63,17 @@ class AcademicGrade(str, enum.Enum):
     bachelor = "bachelor"
     postgraduate_studies = "postgraduate_studies"
 
+
 class QualityLevel(str, enum.Enum):
     good = "good"
     regular = "regular"
     bad = "bad"
 
+
 class YesNo(str, enum.Enum):
     yes = "yes"
     no = "no"
+
 
 class CivilStatus(str, enum.Enum):
     married = "married"
@@ -72,10 +81,12 @@ class CivilStatus(str, enum.Enum):
     divorced = "divorced"
     widowed = "widowed"
 
+
 class HousingType(str, enum.Enum):
     owned = "owned"
     rented = "rented"
     none = "none"
+
 
 class FamilyBackgroundLine(str, enum.Enum):
     fathers = "fathers"
@@ -84,6 +95,8 @@ class FamilyBackgroundLine(str, enum.Enum):
     grandparents = "grandparents"
 
 # -------------------- MODELO: USER --------------------
+
+
 class User(db.Model):
     """
     Modelo User que almacena información principal de cada usuario.
@@ -101,7 +114,8 @@ class User(db.Model):
     email: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(200), nullable=False)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False)
-    status: Mapped[UserStatus] = mapped_column(Enum(UserStatus), nullable=False, default=UserStatus.pre_approved)
+    status: Mapped[UserStatus] = mapped_column(
+        Enum(UserStatus), nullable=False, default=UserStatus.pre_approved)
 
     # Relaciones
     professional_student_data: Mapped["ProfessionalStudentData"] = relationship(
@@ -139,34 +153,41 @@ class User(db.Model):
         return f"<User {self.id} - {self.email}>"
 
 # -------------------- MODELO: ProfesionalStudent DATA --------------------
+
+
 class ProfessionalStudentData(db.Model):
     __tablename__ = "professional_student_data"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, unique=True)
-    
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), nullable=False, unique=True)
+
     institution: Mapped[str] = mapped_column(String(100), nullable=False)
     career: Mapped[str] = mapped_column(String(100), nullable=False)
-    academic_grade_prof: Mapped[AcademicGradeProf] = mapped_column(Enum(AcademicGradeProf), nullable=True)
+    academic_grade_prof: Mapped[AcademicGradeProf] = mapped_column(
+        Enum(AcademicGradeProf), nullable=True)
     register_number: Mapped[str] = mapped_column(String(30), nullable=False)
 
     # -------- VALIDACIÓN DEL ADMIN AL PROFESSIONAL --------
-    validated_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)  
+    validated_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
     validated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    
+
     validated_by: Mapped["User"] = relationship(
         "User",
         foreign_keys=[validated_by_id]
     )
 
     # -------- VALIDACIÓN DEL PROFESSIONAL AL STUDENT --------
-    requested_professional_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+    requested_professional_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), nullable=True)
     requested_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
-    approved_by_professional_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+    approved_by_professional_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), nullable=True)
     approved_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
-    rejected_by_professional_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+    rejected_by_professional_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), nullable=True)
     rejected_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     requested_professional: Mapped["User"] = relationship(
@@ -230,17 +251,23 @@ class MedicalFile(db.Model):
     selected_student_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     selected_student = relationship("User", foreign_keys=[selected_student_id])
 
-    patient_requested_student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    patient_requested_student_id = db.Column(
+        db.Integer, db.ForeignKey('users.id'), nullable=True)
     patient_requested_student_at = db.Column(db.DateTime, nullable=True)
-    patient_requested_student = relationship("User", foreign_keys=[patient_requested_student_id])
+    patient_requested_student = relationship(
+        "User", foreign_keys=[patient_requested_student_id])
 
-    student_validated_patient_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    student_validated_patient_id = db.Column(
+        db.Integer, db.ForeignKey('users.id'), nullable=True)
     student_validated_patient_at = db.Column(db.DateTime, nullable=True)
-    student_validated_patient = relationship("User", foreign_keys=[student_validated_patient_id])
+    student_validated_patient = relationship(
+        "User", foreign_keys=[student_validated_patient_id])
 
-    student_rejected_patient_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    student_rejected_patient_id = db.Column(
+        db.Integer, db.ForeignKey('users.id'), nullable=True)
     student_rejected_patient_at = db.Column(db.DateTime, nullable=True)
-    student_rejected_patient = relationship("User", foreign_keys=[student_rejected_patient_id])
+    student_rejected_patient = relationship(
+        "User", foreign_keys=[student_rejected_patient_id])
 
     progressed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     progressed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -267,11 +294,14 @@ class MedicalFile(db.Model):
     confirmed_by = relationship("User", foreign_keys=[confirmed_by_id])
     no_confirmed_by = relationship("User", foreign_keys=[no_confirmed_by_id])
 
-    non_pathological_background = relationship("NonPathologicalBackground", uselist=False, back_populates="medical_file")
-    pathological_background = relationship("PathologicalBackground", uselist=False, back_populates="medical_file")
-    family_background = relationship("FamilyBackground", uselist=False, back_populates="medical_file")
-    gynecological_background = relationship("GynecologicalBackground", uselist=False, back_populates="medical_file")
-
+    non_pathological_background = relationship(
+        "NonPathologicalBackground", uselist=False, back_populates="medical_file")
+    pathological_background = relationship(
+        "PathologicalBackground", uselist=False, back_populates="medical_file")
+    family_background = relationship(
+        "FamilyBackground", uselist=False, back_populates="medical_file")
+    gynecological_background = relationship(
+        "GynecologicalBackground", uselist=False, back_populates="medical_file")
 
     snapshots = relationship(
         "MedicalFileSnapshot",
@@ -317,7 +347,8 @@ class MedicalFileSnapshot(db.Model):
     __tablename__ = "medical_file_snapshot"
 
     id = db.Column(db.Integer, primary_key=True)
-    medical_file_id = db.Column(db.Integer, db.ForeignKey('medical_file.id', ondelete="CASCADE"), nullable=False)
+    medical_file_id = db.Column(db.Integer, db.ForeignKey(
+        'medical_file.id', ondelete="CASCADE"), nullable=False)
     url = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     uploaded_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -344,14 +375,85 @@ class MedicalFileSnapshot(db.Model):
         }
 
 
+# -------------------- MODELO: ProfessionalNote --------------------
+class ProfessionalNote(db.Model):
+    __tablename__ = "professional_note"
+
+    id = db.Column(db.Integer, primary_key=True)
+    medical_file_id = db.Column(db.Integer, db.ForeignKey(
+        'medical_file.id', ondelete="CASCADE"), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    note = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    visible_to_patient = db.Column(db.Boolean, nullable=False, default=False)
+
+    medical_file = relationship("MedicalFile", backref="professional_notes")
+    author = relationship(
+        "User",
+        primaryjoin="User.id == foreign(ProfessionalNote.author_id)",
+        foreign_keys="[ProfessionalNote.author_id]"
+    )
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "medical_file_id": self.medical_file_id,
+            "author_id": self.author_id,
+            "note": self.note,
+            "visible_to_patient": bool(self.visible_to_patient) if hasattr(self, 'visible_to_patient') else False,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+
+# -------------------- MODELO: MedicalFileModification --------------------
+class MedicalFileModification(db.Model):
+    __tablename__ = "medical_file_modification"
+
+    id = db.Column(db.Integer, primary_key=True)
+    medical_file_id = db.Column(db.Integer, db.ForeignKey(
+        'medical_file.id', ondelete='CASCADE'), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    author_role = db.Column(db.String(30), nullable=True)
+    # e.g. save_draft, send_for_review, professional_return, professional_approve, patient_confirm, patient_reject
+    action = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    payload = db.Column(db.JSON)
+    snapshot_id = db.Column(db.Integer, db.ForeignKey(
+        'medical_file_snapshot.id'), nullable=True)
+    comment = db.Column(db.Text, nullable=True)
+
+    # Metadata for audit
+    ip = db.Column(db.String(100), nullable=True)
+    user_agent = db.Column(db.String(512), nullable=True)
+
+    medical_file = relationship("MedicalFile", foreign_keys=[medical_file_id])
+    author = relationship("User", foreign_keys=[author_id])
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "medical_file_id": self.medical_file_id,
+            "author_id": self.author_id,
+            "author_role": self.author_role,
+            "action": self.action,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "payload": self.payload,
+            "snapshot_id": self.snapshot_id,
+            "comment": self.comment,
+            "ip": self.ip,
+            "user_agent": self.user_agent
+        }
+
 
 # -------------------- MODELO: NonPathologicalBackground --------------------
 class NonPathologicalBackground(db.Model):
     __tablename__ = "non_pathological_background"
 
     id = db.Column(db.Integer, primary_key=True)
-    medical_file_id = db.Column(db.Integer, db.ForeignKey('medical_file.id'), nullable=False)
-    medical_file = relationship("MedicalFile", back_populates="non_pathological_background")
+    medical_file_id = db.Column(db.Integer, db.ForeignKey(
+        'medical_file.id'), nullable=False)
+    medical_file = relationship(
+        "MedicalFile", back_populates="non_pathological_background")
 
     sex = db.Column(db.String(20))
     nationality = db.Column(db.String(80))
@@ -361,7 +463,26 @@ class NonPathologicalBackground(db.Model):
     spiritual_practices = db.Column(db.Text)
     other_origin_info = db.Column(db.Text)
 
+    # Legacy consolidated address (kept for compatibility)
     address = db.Column(db.String(255))
+    # Structured address fields (frontend provides by-parts)
+    birth_country = db.Column(db.String(80))
+    birth_state = db.Column(db.String(80))
+    birth_city = db.Column(db.String(80))
+    birth_neighborhood = db.Column(db.String(120))
+    birth_street = db.Column(db.String(255))
+    birth_ext_int = db.Column(db.String(80))
+    birth_zip = db.Column(db.String(30))
+    birth_other_info = db.Column(db.Text)
+
+    residence_country = db.Column(db.String(80))
+    residence_state = db.Column(db.String(80))
+    residence_city = db.Column(db.String(80))
+    residence_neighborhood = db.Column(db.String(120))
+    residence_street = db.Column(db.String(255))
+    residence_ext_int = db.Column(db.String(80))
+    residence_zip = db.Column(db.String(30))
+    residence_other_info = db.Column(db.Text)
     housing_type = db.Column(Enum(HousingType))
     civil_status = db.Column(Enum(CivilStatus))
     cohabitants = db.Column(db.String(255))
@@ -399,13 +520,27 @@ class NonPathologicalBackground(db.Model):
 
     hobbies = db.Column(db.Text)
     recent_travel = db.Column(db.Text)
+    # Legacy enum flags (yes/no) kept for compatibility
     has_piercings = db.Column(Enum(YesNo))
     has_tattoos = db.Column(Enum(YesNo))
+    # Explicit booleans for checkbox state (preferred)
+    piercings_bool = db.Column(db.Boolean)
+    tattoos_bool = db.Column(db.Boolean)
     alcohol_use = db.Column(db.Text)
     tobacco_use = db.Column(db.Text)
     other_drug_use = db.Column(db.Text)
+    # Explicit booleans for consumptions
+    consume_tobacco = db.Column(db.Boolean)
+    consume_alcohol = db.Column(db.Boolean)
+    consume_recreational_drugs = db.Column(db.Boolean)
     addictions = db.Column(db.Text)
     other_recreational_info = db.Column(db.Text)
+
+    # Structured lists / JSON fields (Postgres JSON/JSONB or TEXT fallback)
+    education_records_json = db.Column(db.JSON)
+    economic_activities_json = db.Column(db.JSON)
+    recent_travel_list_json = db.Column(db.JSON)
+    exercise_activities_json = db.Column(db.JSON)
 
     def serialize(self):
         return {
@@ -418,6 +553,24 @@ class NonPathologicalBackground(db.Model):
             "blood_type": self.blood_type,
             "spiritual_practices": self.spiritual_practices,
             "other_origin_info": self.other_origin_info,
+            # Structured birth address parts
+            "birth_country": self.birth_country,
+            "birth_state": self.birth_state,
+            "birth_city": self.birth_city,
+            "birth_neighborhood": self.birth_neighborhood,
+            "birth_street": self.birth_street,
+            "birth_ext_int": self.birth_ext_int,
+            "birth_zip": self.birth_zip,
+            "birth_other_info": self.birth_other_info,
+            # Structured residence address parts
+            "residence_country": self.residence_country,
+            "residence_state": self.residence_state,
+            "residence_city": self.residence_city,
+            "residence_neighborhood": self.residence_neighborhood,
+            "residence_street": self.residence_street,
+            "residence_ext_int": self.residence_ext_int,
+            "residence_zip": self.residence_zip,
+            "residence_other_info": self.residence_other_info,
             "civil_status": self.civil_status.name if self.civil_status else None,
             "address": self.address,
             "housing_type": self.housing_type.name if self.housing_type else None,
@@ -450,20 +603,34 @@ class NonPathologicalBackground(db.Model):
             "hobbies": self.hobbies,
             "recent_travel": self.recent_travel,
             "has_piercings": self.has_piercings.name if self.has_piercings else None,
+            "piercings_bool": bool(self.piercings_bool) if hasattr(self, 'piercings_bool') else None,
             "has_tattoos": self.has_tattoos.name if self.has_tattoos else None,
+            "tattoos_bool": bool(self.tattoos_bool) if hasattr(self, 'tattoos_bool') else None,
             "alcohol_use": self.alcohol_use,
             "tobacco_use": self.tobacco_use,
             "other_drug_use": self.other_drug_use,
             "addictions": self.addictions,
-            "other_recreational_info": self.other_recreational_info
+            "other_recreational_info": self.other_recreational_info,
+            # Explicit booleans for consumptions
+            "consume_tobacco": bool(self.consume_tobacco) if hasattr(self, 'consume_tobacco') else None,
+            "consume_alcohol": bool(self.consume_alcohol) if hasattr(self, 'consume_alcohol') else None,
+            "consume_recreational_drugs": bool(self.consume_recreational_drugs) if hasattr(self, 'consume_recreational_drugs') else None,
+            # Structured lists
+            "education_records_json": self.education_records_json,
+            "economic_activities_json": self.economic_activities_json,
+            "recent_travel_list_json": self.recent_travel_list_json,
+            "exercise_activities_json": self.exercise_activities_json
         }
 
 # -------------------- MODELO: PathologicalBackground --------------------
+
+
 class PathologicalBackground(db.Model):
     __tablename__ = "pathological_background"
 
     id = db.Column(db.Integer, primary_key=True)
-    medical_file_id = db.Column(db.Integer, db.ForeignKey('medical_file.id'), nullable=False)
+    medical_file_id = db.Column(db.Integer, db.ForeignKey(
+        'medical_file.id'), nullable=False)
     medical_file = relationship("MedicalFile", back_populates="pathological_background")
 
     disability_description = db.Column(db.Text)
@@ -481,6 +648,13 @@ class PathologicalBackground(db.Model):
     allergies = db.Column(db.Text)
     other_pathological_info = db.Column(db.Text)
 
+    # Structured JSON/List fields to store frontend-provided lists verbatim
+    personal_diseases_list = db.Column(db.JSON)
+    medications_list = db.Column(db.JSON)
+    hospitalizations_list = db.Column(db.JSON)
+    traumatisms_list = db.Column(db.JSON)
+    transfusions_list = db.Column(db.JSON)
+
     def serialize(self):
         return {
             "id": self.id,
@@ -491,21 +665,28 @@ class PathologicalBackground(db.Model):
             "motor_disability": self.motor_disability,
             "intellectual_disability": self.intellectual_disability,
             "chronic_diseases": self.chronic_diseases,
+            "personal_diseases_list": self.personal_diseases_list,
             "current_medications": self.current_medications,
+            "medications_list": self.medications_list,
             "hospitalizations": self.hospitalizations,
+            "hospitalizations_list": self.hospitalizations_list,
             "surgeries": self.surgeries,
             "accidents": self.accidents,
             "transfusions": self.transfusions,
+            "transfusions_list": self.transfusions_list,
             "allergies": self.allergies,
             "other_pathological_info": self.other_pathological_info
         }
 
 # -------------------- MODELO: FamilyBackground --------------------
+
+
 class FamilyBackground(db.Model):
     __tablename__ = "family_background"
 
     id = db.Column(db.Integer, primary_key=True)
-    medical_file_id = db.Column(db.Integer, db.ForeignKey('medical_file.id'), nullable=False)
+    medical_file_id = db.Column(db.Integer, db.ForeignKey(
+        'medical_file.id'), nullable=False)
     medical_file = relationship("MedicalFile", back_populates="family_background")
 
     hypertension = db.Column(db.Boolean, default=False)
@@ -534,12 +715,16 @@ class FamilyBackground(db.Model):
         }
 
 # -------------------- MODELO: GynecologicalBackground --------------------
+
+
 class GynecologicalBackground(db.Model):
     __tablename__ = "gynecological_background"
 
     id = db.Column(db.Integer, primary_key=True)
-    medical_file_id = db.Column(db.Integer, db.ForeignKey('medical_file.id'), nullable=False)
-    medical_file = relationship("MedicalFile", back_populates="gynecological_background")
+    medical_file_id = db.Column(db.Integer, db.ForeignKey(
+        'medical_file.id'), nullable=False)
+    medical_file = relationship(
+        "MedicalFile", back_populates="gynecological_background")
 
     menarche_age = db.Column(db.Integer)
     pregnancies = db.Column(db.Integer)

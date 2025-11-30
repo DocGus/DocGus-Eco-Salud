@@ -13,12 +13,12 @@ Notas clave:
 - Prefijo del blueprint: todas las rutas definidas aquí se sirven bajo /api/.
 """
 
-from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory
+from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, current_app
 import os
 import base64
 import uuid
 from werkzeug.utils import secure_filename
-from api.models import db, User, ProfessionalStudentData, MedicalFile, FileStatus, UserRole, UserStatus, GynecologicalBackground, NonPathologicalBackground, PathologicalBackground, FamilyBackground, MedicalFileSnapshot
+from api.models import db, User, ProfessionalStudentData, MedicalFile, FileStatus, UserRole, UserStatus, GynecologicalBackground, NonPathologicalBackground, PathologicalBackground, FamilyBackground, MedicalFileSnapshot, ProfessionalNote, MedicalFileModification
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -542,6 +542,22 @@ def get_medical_file(file_id):
     if not user:
         return jsonify({"error": "Paciente no encontrado"}), 404
 
+    # Incluir snapshots y notas en la respuesta para facilitar la vista profesional
+    snapshots = [s.serialize()
+                 for s in medical_file.snapshots] if medical_file.snapshots else []
+
+    # Filtrar notas según rol del solicitante: pacientes no ven notas.
+    current_user = session_get(User, get_jwt_identity())
+    try:
+        notes_q = db.session.query(ProfessionalNote).filter_by(
+            medical_file_id=medical_file.id).order_by(ProfessionalNote.created_at.desc()).all()
+        if current_user and current_user.role == UserRole.patient:
+            notes = []
+        else:
+            notes = [n.serialize() for n in notes_q]
+    except Exception:
+        notes = []
+
     return jsonify({
         "medical_file": medical_file.serialize(),
         "user": {
@@ -553,7 +569,9 @@ def get_medical_file(file_id):
             "birth_day": user.birth_day.isoformat(),
             "email": user.email,
             "phone": user.phone,
-        }
+        },
+        "snapshots": snapshots,
+        "notes": notes
     }), 200
 
 # 12 EPT para guardar antecedentes médicos
@@ -571,6 +589,11 @@ def save_backgrounds():
     `patological_background` (legacy typo) como `pathological_background`.
     """
     data = request.get_json() or {}
+    # Logging para diagnóstico de persistencia
+    try:
+        current_app.logger.debug("[DIAG] save_backgrounds received payload: %s", data)
+    except Exception:
+        pass
 
     medical_file_id = data.get("medical_file_id")
     if not medical_file_id:
@@ -580,6 +603,10 @@ def save_backgrounds():
     if not medical_file:
         return jsonify({"error": "Expediente no encontrado"}), 404
 
+    # Sólo permitir edición cuando el expediente está en estado `progress`
+    if medical_file.file_status != FileStatus.progress:
+        return jsonify({"error": "Expediente no editable en su estado actual"}), 403
+
     # ---------- Non Pathological Background ----------
     non_path_data = data.get("non_pathological_background")
     if non_path_data:
@@ -588,7 +615,79 @@ def save_backgrounds():
             medical_file.non_pathological_background = NonPathologicalBackground()
             medical_file.non_pathological_background.medical_file = medical_file
 
+        # Mapeos explícitos para nuevas columnas estructuradas / booleans
+        try:
+            # Checkboxes: frontend sends booleans like 'tattoos'/'piercings'
+            if 'tattoos' in non_path_data:
+                val = non_path_data.get('tattoos')
+                # guardar booleano explícito
+                try:
+                    medical_file.non_pathological_background.tattoos_bool = bool(val)
+                except Exception:
+                    pass
+                # y mantener legacy enum
+                try:
+                    medical_file.non_pathological_background.has_tattoos = (
+                        'yes' if val else 'no') if val is not None else None
+                except Exception:
+                    pass
+
+            if 'piercings' in non_path_data:
+                val = non_path_data.get('piercings')
+                try:
+                    medical_file.non_pathological_background.piercings_bool = bool(val)
+                except Exception:
+                    pass
+                try:
+                    medical_file.non_pathological_background.has_piercings = (
+                        'yes' if val else 'no') if val is not None else None
+                except Exception:
+                    pass
+
+            # Consumptions (explicit booleans)
+            for k in ('consume_tobacco', 'consume_alcohol', 'consume_recreational_drugs'):
+                if k in non_path_data:
+                    try:
+                        setattr(medical_file.non_pathological_background,
+                                k, bool(non_path_data.get(k)))
+                    except Exception:
+                        pass
+
+            # Structured lists mapping
+            if 'education_records' in non_path_data:
+                try:
+                    medical_file.non_pathological_background.education_records_json = non_path_data.get(
+                        'education_records')
+                except Exception:
+                    pass
+            if 'economic_activities' in non_path_data:
+                try:
+                    medical_file.non_pathological_background.economic_activities_json = non_path_data.get(
+                        'economic_activities')
+                except Exception:
+                    pass
+            if 'recent_travel_list' in non_path_data:
+                try:
+                    medical_file.non_pathological_background.recent_travel_list_json = non_path_data.get(
+                        'recent_travel_list')
+                except Exception:
+                    pass
+            if 'exercise_activities' in non_path_data:
+                try:
+                    medical_file.non_pathological_background.exercise_activities_json = non_path_data.get(
+                        'exercise_activities')
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         for key, value in non_path_data.items():
+            # Log intento de asignación
+            try:
+                current_app.logger.debug(
+                    "[DIAG] setting non_pathological_background.%s = %s", key, value)
+            except Exception:
+                pass
             if hasattr(medical_file.non_pathological_background, key):
                 setattr(medical_file.non_pathological_background, key, value)
 
@@ -602,7 +701,41 @@ def save_backgrounds():
             medical_file.pathological_background = PathologicalBackground()
             medical_file.pathological_background.medical_file = medical_file
 
+        # Compatibilidad: aceptar claves legacy y estructuras desde frontend
+        if isinstance(path_data, dict):
+            # personal_diseases -> chronic_diseases
+            if 'personal_diseases' in path_data and 'chronic_diseases' not in path_data:
+                path_data['chronic_diseases'] = path_data.get('personal_diseases')
+            # personal_diseases_list -> chronic_diseases text
+            if 'personal_diseases_list' in path_data and isinstance(path_data['personal_diseases_list'], list):
+                blocks = []
+                for i, it in enumerate(path_data['personal_diseases_list']):
+                    if isinstance(it, dict):
+                        name = it.get('name') or it.get('disease') or ''
+                        onset = it.get('onset')
+                        blocks.append(
+                            f"{i+1}) {name}{(' (inicio: '+str(onset)+')') if onset else ''}")
+                    else:
+                        blocks.append(f"{i+1}) {str(it)}")
+                path_data['chronic_diseases'] = '; '.join(blocks)
+
+            # medications_list -> current_medications
+            if 'medications_list' in path_data and isinstance(path_data['medications_list'], list):
+                meds = []
+                for i, m in enumerate(path_data['medications_list']):
+                    if isinstance(m, dict):
+                        meds.append(
+                            f"{i+1}) {m.get('generic_name') or m.get('name', '')} {m.get('dose_amount', '')} {m.get('dose_frequency', '')}")
+                    else:
+                        meds.append(f"{i+1}) {str(m)}")
+                path_data['current_medications'] = '; '.join(meds)
+
         for key, value in path_data.items():
+            try:
+                current_app.logger.debug(
+                    "[DIAG] setting pathological_background.%s = %s", key, value)
+            except Exception:
+                pass
             if hasattr(medical_file.pathological_background, key):
                 setattr(medical_file.pathological_background, key, value)
 
@@ -615,6 +748,11 @@ def save_backgrounds():
             medical_file.family_background.medical_file = medical_file
 
         for key, value in family_data.items():
+            try:
+                current_app.logger.debug(
+                    "[DIAG] setting family_background.%s = %s", key, value)
+            except Exception:
+                pass
             if hasattr(medical_file.family_background, key):
                 setattr(medical_file.family_background, key, value)
 
@@ -626,11 +764,91 @@ def save_backgrounds():
             medical_file.gynecological_background = GynecologicalBackground()
             medical_file.gynecological_background.medical_file = medical_file
 
+        # Compatibilidad: aceptar claves legacy enviadas por frontend antiguo
+        # Mapear 'contraceptive_method' -> 'contraceptive_methods'
+        if isinstance(gyne_data, dict):
+            if 'contraceptive_method' in gyne_data and 'contraceptive_methods' not in gyne_data:
+                gyne_data['contraceptive_methods'] = gyne_data.pop(
+                    'contraceptive_method')
+            if 'contraceptive_method_since' in gyne_data:
+                since = gyne_data.pop('contraceptive_method_since')
+                # anexar a other_gynecological_info
+                prev = gyne_data.get('other_gynecological_info') or ''
+                append = f"Desde: {since}"
+                gyne_data['other_gynecological_info'] = (
+                    prev + (' | ' + append if prev else append)).strip()
+
         for key, value in gyne_data.items():
+            try:
+                current_app.logger.debug(
+                    "[DIAG] setting gynecological_background.%s = %s", key, value)
+            except Exception:
+                pass
             if hasattr(medical_file.gynecological_background, key):
                 setattr(medical_file.gynecological_background, key, value)
 
+    # Estado antes del commit (para diagnóstico)
+    try:
+        nb = medical_file.non_pathological_background.serialize(
+        ) if medical_file.non_pathological_background else None
+        pb = medical_file.pathological_background.serialize(
+        ) if medical_file.pathological_background else None
+        fb = medical_file.family_background.serialize() if medical_file.family_background else None
+        gb = medical_file.gynecological_background.serialize(
+        ) if medical_file.gynecological_background else None
+        current_app.logger.debug('[DIAG] Before commit -> non_pathological: %s', nb)
+        current_app.logger.debug('[DIAG] Before commit -> pathological: %s', pb)
+        current_app.logger.debug('[DIAG] Before commit -> family: %s', fb)
+        current_app.logger.debug('[DIAG] Before commit -> gynecological: %s', gb)
+    except Exception as e:
+        current_app.logger.debug('[DIAG] error serializing before commit: %s', e)
+
     db.session.commit()
+
+    # Estado después del commit (verificar persistencia)
+    try:
+        # Reload from DB to ensure values persisted
+        db.session.refresh(medical_file)
+        nb2 = medical_file.non_pathological_background.serialize(
+        ) if medical_file.non_pathological_background else None
+        pb2 = medical_file.pathological_background.serialize(
+        ) if medical_file.pathological_background else None
+        fb2 = medical_file.family_background.serialize() if medical_file.family_background else None
+        gb2 = medical_file.gynecological_background.serialize(
+        ) if medical_file.gynecological_background else None
+        current_app.logger.debug('[DIAG] After commit -> non_pathological: %s', nb2)
+        current_app.logger.debug('[DIAG] After commit -> pathological: %s', pb2)
+        current_app.logger.debug('[DIAG] After commit -> family: %s', fb2)
+        current_app.logger.debug('[DIAG] After commit -> gynecological: %s', gb2)
+    except Exception as e:
+        current_app.logger.debug('[DIAG] error serializing after commit: %s', e)
+    # Crear registro en historial de modificaciones SOLO si se envía a revisión
+    try:
+        send_for_review = isinstance(data, dict) and data.get(
+            'action') == 'send_for_review'
+        if send_for_review:
+            author_id = get_jwt_identity()
+            author = session_get(User, author_id)
+
+            medical_file.file_status = FileStatus.review
+
+            mod = MedicalFileModification(
+                medical_file_id=medical_file.id,
+                author_id=author.id if author else None,
+                author_role=author.role.value if author and hasattr(
+                    author, 'role') else None,
+                action='send_for_review',
+                payload=medical_file.serialize(),
+                ip=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+            db.session.add(mod)
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        # No bloquear la operación por fallos en auditoría, pero loguear
+        current_app.logger.error("[AUDIT] Failed creating modification record: %s", e)
+
     return jsonify({"message": "Antecedentes guardados exitosamente"}), 200
 
 
@@ -892,7 +1110,25 @@ def create_backgrounds():
     non_path = NonPathologicalBackground(
         medical_file_id=medical_file.id,
         sex=personal_data.get("sex"),
+        # preserve legacy consolidated address and structured parts if provided
         address=personal_data.get("address"),
+        birth_country=personal_data.get("birth_country"),
+        birth_state=personal_data.get("birth_state"),
+        birth_city=personal_data.get("birth_city"),
+        birth_neighborhood=personal_data.get("birth_neighborhood"),
+        birth_street=personal_data.get("birth_street"),
+        birth_ext_int=personal_data.get("birth_ext_int"),
+        birth_zip=personal_data.get("birth_zip"),
+        birth_other_info=personal_data.get("birth_other_info"),
+
+        residence_country=personal_data.get("residence_country"),
+        residence_state=personal_data.get("residence_state"),
+        residence_city=personal_data.get("residence_city"),
+        residence_neighborhood=personal_data.get("residence_neighborhood"),
+        residence_street=personal_data.get("residence_street"),
+        residence_ext_int=personal_data.get("residence_ext_int"),
+        residence_zip=personal_data.get("residence_zip"),
+        residence_other_info=personal_data.get("residence_other_info"),
         education_institution=non_path_data.get("education_level"),
         economic_activity=non_path_data.get("economic_activity"),
         civil_status=non_path_data.get("marital_status"),
@@ -902,6 +1138,17 @@ def create_backgrounds():
         sleep_details=non_path_data.get("hygiene"),
         has_tattoos=bool_to_yesno(non_path_data.get("tattoos")),
         has_piercings=bool_to_yesno(non_path_data.get("piercings")),
+        # Explicit booleans (preferred by new frontend)
+        tattoos_bool=non_path_data.get("tattoos"),
+        piercings_bool=non_path_data.get("piercings"),
+        consume_tobacco=non_path_data.get("consume_tobacco"),
+        consume_alcohol=non_path_data.get("consume_alcohol"),
+        consume_recreational_drugs=non_path_data.get("consume_recreational_drugs"),
+        # Structured lists
+        education_records_json=non_path_data.get("education_records"),
+        economic_activities_json=non_path_data.get("economic_activities"),
+        recent_travel_list_json=non_path_data.get("recent_travel_list"),
+        exercise_activities_json=non_path_data.get("exercise_activities"),
         alcohol_use=non_path_data.get("alcohol_use"),
         tobacco_use=non_path_data.get("tobacco_use"),
         other_recreational_info=non_path_data.get("others")
@@ -911,9 +1158,16 @@ def create_backgrounds():
     # Crear antecedentes patológicos
     path = PathologicalBackground(
         medical_file_id=medical_file.id,
+        # Legacy consolidated fields
         chronic_diseases=path_data.get("personal_diseases"),
         current_medications=path_data.get("medications"),
         hospitalizations=path_data.get("hospitalizations"),
+        # Structured JSON lists (if frontend provided them)
+        personal_diseases_list=path_data.get("personal_diseases_list"),
+        medications_list=path_data.get("medications_list"),
+        hospitalizations_list=path_data.get("hospitalizations_list"),
+        traumatisms_list=path_data.get("traumatisms_list"),
+        transfusions_list=path_data.get("transfusions_list"),
         surgeries=path_data.get("surgeries"),
         accidents=path_data.get("traumatisms"),
         transfusions=path_data.get("transfusions"),
@@ -1031,6 +1285,160 @@ def get_snapshots(medical_file_id):
         for s in snapshots
     ]
     return jsonify(result), 200
+
+
+# -------------------- Notas profesionales --------------------
+def _professional_can_access_file(medical_file, professional_id):
+    """Verifica si el profesional tiene permiso para ver/añadir notas.
+
+    Política heurística:
+    - Admin siempre tiene acceso.
+    - Si el expediente tiene `selected_student_id`, y ese estudiante fue validado por el profesional
+      (ProfessionalStudentData.validated_by_id == professional_id), se permite.
+    - El paciente propietario y el estudiante seleccionado pueden ver notas si están autenticados.
+    """
+    try:
+        prof = session_get(User, professional_id)
+        if not prof:
+            return False
+        if prof.role == UserRole.admin:
+            return True
+        # paciente propietario
+        if medical_file.user_id == int(professional_id):
+            return True
+        # estudiante seleccionado
+        if medical_file.selected_student_id and int(medical_file.selected_student_id) == int(professional_id):
+            return True
+        # profesional que validó al estudiante seleccionado
+        if medical_file.selected_student_id:
+            psd = ProfessionalStudentData.query.filter_by(
+                user_id=medical_file.selected_student_id, validated_by_id=professional_id).first()
+            if psd:
+                return True
+    except Exception:
+        pass
+    return False
+
+
+@api.route('/medical_file/<int:medical_file_id>/notes', methods=['GET'])
+@jwt_required()
+def get_medical_file_notes(medical_file_id):
+    medical_file = session_get(MedicalFile, medical_file_id)
+    if not medical_file:
+        return jsonify({"error": "Expediente no encontrado"}), 404
+
+    current_user = session_get(User, get_jwt_identity())
+    if not current_user:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+
+    # Permitir acceso si la heurística lo permite
+    if not _professional_can_access_file(medical_file, current_user.id):
+        # usuarios con rol patient solo si son propietarios
+        if current_user.role == UserRole.patient and medical_file.user_id == current_user.id:
+            pass
+        else:
+            return jsonify({"error": "Acceso denegado"}), 403
+
+    # Los pacientes no ven notas (regla de visibilidad acordada)
+    if current_user.role == UserRole.patient:
+        return jsonify([]), 200
+
+    notes_q = ProfessionalNote.query.filter_by(medical_file_id=medical_file.id).order_by(
+        ProfessionalNote.created_at.desc()).all()
+    return jsonify([n.serialize() for n in notes_q]), 200
+
+
+@api.route('/medical_file/<int:medical_file_id>/notes', methods=['POST'])
+@jwt_required()
+def post_medical_file_note(medical_file_id):
+    medical_file = session_get(MedicalFile, medical_file_id)
+    if not medical_file:
+        return jsonify({"error": "Expediente no encontrado"}), 404
+    current_user = session_get(User, get_jwt_identity())
+    if not current_user:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+
+    # Permisos para crear nota:
+    # - Profesional: aplicar heurística _professional_can_access_file
+    # - Estudiante: sólo si es el estudiante asignado (selected_student_id)
+    # - Paciente: sólo si es el propietario del expediente
+    allowed = False
+    if current_user.role == UserRole.professional:
+        allowed = _professional_can_access_file(medical_file, current_user.id)
+    elif current_user.role == UserRole.student:
+        allowed = (medical_file.selected_student_id and int(
+            medical_file.selected_student_id) == int(current_user.id))
+    elif current_user.role == UserRole.patient:
+        allowed = (medical_file.user_id == current_user.id)
+
+    if not allowed:
+        return jsonify({"error": "Acceso denegado"}), 403
+
+    data = request.get_json() or {}
+    note_text = (data.get('note') or '').strip()
+    if not note_text:
+        return jsonify({"error": "Campo 'note' es requerido"}), 400
+
+    if len(note_text) > 4000:
+        return jsonify({"error": "Nota demasiado larga (max 4000 caracteres)"}), 400
+
+    # Por regla: las notas sólo se muestran a profesional y estudiante, por lo que
+    # no marcamos visible_to_patient
+    note = ProfessionalNote(
+        medical_file_id=medical_file.id,
+        author_id=current_user.id,
+        note=note_text,
+    )
+    try:
+        setattr(note, 'visible_to_patient', False)
+    except Exception:
+        pass
+
+    db.session.add(note)
+    db.session.commit()
+
+    return jsonify(note.serialize()), 201
+
+
+@api.route('/medical_file/<int:medical_file_id>/history', methods=['GET'])
+@jwt_required()
+def get_medical_file_history(medical_file_id):
+    medical_file = session_get(MedicalFile, medical_file_id)
+    if not medical_file:
+        return jsonify({"error": "Expediente no encontrado"}), 404
+
+    current_user = session_get(User, get_jwt_identity())
+    if not current_user:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+
+    # Permisos: paciente sólo puede ver su propio historial
+    if current_user.role == UserRole.patient and medical_file.user_id != current_user.id:
+        return jsonify({"error": "Acceso denegado"}), 403
+
+    mods = db.session.query(MedicalFileModification).filter_by(
+        medical_file_id=medical_file_id).order_by(MedicalFileModification.created_at.desc()).all()
+    return jsonify([m.serialize() for m in mods]), 200
+
+
+@api.route('/medical_file/<int:medical_file_id>/history/<int:mod_id>', methods=['GET'])
+@jwt_required()
+def get_medical_file_history_item(medical_file_id, mod_id):
+    medical_file = session_get(MedicalFile, medical_file_id)
+    if not medical_file:
+        return jsonify({"error": "Expediente no encontrado"}), 404
+
+    current_user = session_get(User, get_jwt_identity())
+    if not current_user:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+
+    if current_user.role == UserRole.patient and medical_file.user_id != current_user.id:
+        return jsonify({"error": "Acceso denegado"}), 403
+
+    mod = db.session.query(MedicalFileModification).filter_by(
+        medical_file_id=medical_file_id, id=mod_id).first()
+    if not mod:
+        return jsonify({"error": "Registro no encontrado"}), 404
+    return jsonify(mod.serialize()), 200
 
 # 20 EPT para que el paciente obtenga snapshots del expediente propio
 
