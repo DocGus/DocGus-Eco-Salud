@@ -90,7 +90,8 @@ class GynecologicalBackgroundView(ModelView):
 def setup_admin(app):
     app.secret_key = os.environ.get('FLASK_APP_KEY', 'sample key')
     app.config['FLASK_ADMIN_SWATCH'] = 'cerulean'
-    admin = Admin(app, name='4Geeks Admin', template_mode='bootstrap3')
+    # Flask-Admin 2.x removed the `template_mode` parameter; use defaults.
+    admin = Admin(app, name='4Geeks Admin')
 
     # Agregar las vistas
     admin.add_view(UserView(User, db.session))
