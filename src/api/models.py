@@ -9,6 +9,18 @@ import enum
 db = SQLAlchemy()
 
 
+# Helper to safely extract enum name/value for serialization
+def enum_name(val):
+    """Return enum.name if value is an Enum instance, otherwise return the value or None."""
+    try:
+        if val is None:
+            return None
+        # Enum instances have attribute 'name'
+        return val.name if hasattr(val, 'name') else val
+    except Exception:
+        return val
+
+
 # -------------------- SERIALIZACIÓN DE DATETIME --------------------
 # Función para serializar objetos datetime a formato ISO 8601
 def serialize_datetime(value):
@@ -313,7 +325,7 @@ class MedicalFile(db.Model):
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "file_status": self.file_status.name if self.file_status else None,
+            "file_status": enum_name(self.file_status),
             "selected_student_id": self.selected_student_id,
             "patient_requested_student_id": self.patient_requested_student_id,
             "patient_requested_student_at": serialize_datetime(self.patient_requested_student_at),
@@ -458,7 +470,7 @@ class NonPathologicalBackground(db.Model):
     sex = db.Column(db.String(20))
     nationality = db.Column(db.String(80))
     ethnic_group = db.Column(db.String(80))
-    languages = db.Column(db.String(255))
+    languages = db.Column(db.JSON)
     blood_type = db.Column(db.String(5))
     spiritual_practices = db.Column(db.Text)
     other_origin_info = db.Column(db.Text)
@@ -485,8 +497,8 @@ class NonPathologicalBackground(db.Model):
     residence_other_info = db.Column(db.Text)
     housing_type = db.Column(Enum(HousingType))
     civil_status = db.Column(Enum(CivilStatus))
-    cohabitants = db.Column(db.String(255))
-    dependents = db.Column(db.String(255))
+    cohabitants = db.Column(db.JSON)
+    dependents = db.Column(db.JSON)
     other_living_info = db.Column(db.Text)
 
     education_institution = db.Column(db.String(255))
@@ -549,7 +561,8 @@ class NonPathologicalBackground(db.Model):
             "sex": self.sex,
             "nationality": self.nationality,
             "ethnic_group": self.ethnic_group,
-            "languages": self.languages,
+            # Exponer multiselecciones como listas cuando sea posible
+            "languages": ([s.strip() for s in self.languages.split(',')] if isinstance(self.languages, str) and self.languages.strip() else (self.languages or [])),
             "blood_type": self.blood_type,
             "spiritual_practices": self.spiritual_practices,
             "other_origin_info": self.other_origin_info,
@@ -571,11 +584,11 @@ class NonPathologicalBackground(db.Model):
             "residence_ext_int": self.residence_ext_int,
             "residence_zip": self.residence_zip,
             "residence_other_info": self.residence_other_info,
-            "civil_status": self.civil_status.name if self.civil_status else None,
+            "civil_status": enum_name(self.civil_status),
             "address": self.address,
-            "housing_type": self.housing_type.name if self.housing_type else None,
-            "cohabitants": self.cohabitants,
-            "dependents": self.dependents,
+            "housing_type": enum_name(self.housing_type),
+            "cohabitants": ([s.strip() for s in self.cohabitants.split(',')] if isinstance(self.cohabitants, str) and self.cohabitants.strip() else (self.cohabitants or [])),
+            "dependents": ([s.strip() for s in self.dependents.split(',')] if isinstance(self.dependents, str) and self.dependents.strip() else (self.dependents or [])),
             "other_living_info": self.other_living_info,
             "education_institution": self.education_institution,
             "academic_degree": self.academic_degree,
@@ -585,26 +598,26 @@ class NonPathologicalBackground(db.Model):
             "economic_activity": self.economic_activity,
             "is_employer": self.is_employer,
             "other_occupation_info": self.other_occupation_info,
-            "has_medical_insurance": self.has_medical_insurance.name if self.has_medical_insurance else None,
+            "has_medical_insurance": enum_name(self.has_medical_insurance),
             "insurance_institution": self.insurance_institution,
             "insurance_number": self.insurance_number,
             "other_insurance_info": self.other_insurance_info,
-            "diet_quality": self.diet_quality.name if self.diet_quality else None,
+            "diet_quality": enum_name(self.diet_quality),
             "meals_per_day": self.meals_per_day,
             "daily_liquid_intake_liters": self.daily_liquid_intake_liters,
             "supplements": self.supplements,
             "other_diet_info": self.other_diet_info,
-            "hygiene_quality": self.hygiene_quality.name if self.hygiene_quality else None,
+            "hygiene_quality": enum_name(self.hygiene_quality),
             "other_hygiene_info": self.other_hygiene_info,
-            "exercise_quality": self.exercise_quality.name if self.exercise_quality else None,
+            "exercise_quality": enum_name(self.exercise_quality),
             "exercise_details": self.exercise_details,
-            "sleep_quality": self.sleep_quality.name if self.sleep_quality else None,
+            "sleep_quality": enum_name(self.sleep_quality),
             "sleep_details": self.sleep_details,
             "hobbies": self.hobbies,
             "recent_travel": self.recent_travel,
-            "has_piercings": self.has_piercings.name if self.has_piercings else None,
+            "has_piercings": enum_name(self.has_piercings),
             "piercings_bool": bool(self.piercings_bool) if hasattr(self, 'piercings_bool') else None,
-            "has_tattoos": self.has_tattoos.name if self.has_tattoos else None,
+            "has_tattoos": enum_name(self.has_tattoos),
             "tattoos_bool": bool(self.tattoos_bool) if hasattr(self, 'tattoos_bool') else None,
             "alcohol_use": self.alcohol_use,
             "tobacco_use": self.tobacco_use,

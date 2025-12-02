@@ -17,60 +17,99 @@ depends_on = None
 
 
 def upgrade():
+    # Make migration dialect-aware: use JSONB on Postgres, TEXT fallback on SQLite
+    bind = op.get_bind()
+    dialect = bind.dialect.name if bind is not None else None
+    using_postgres = bool(dialect and dialect.startswith('postgres'))
+
     # NonPathologicalBackground additions
     with op.batch_alter_table('non_pathological_background', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('birth_country', sa.String(length=80), nullable=True))
-        batch_op.add_column(sa.Column('birth_state', sa.String(length=80), nullable=True))
-        batch_op.add_column(sa.Column('birth_city', sa.String(length=80), nullable=True))
-        batch_op.add_column(sa.Column('birth_neighborhood', sa.String(length=120), nullable=True))
-        batch_op.add_column(sa.Column('birth_street', sa.String(length=255), nullable=True))
-        batch_op.add_column(sa.Column('birth_ext_int', sa.String(length=80), nullable=True))
+        batch_op.add_column(
+            sa.Column('birth_country', sa.String(length=80), nullable=True))
+        batch_op.add_column(
+            sa.Column('birth_state', sa.String(length=80), nullable=True))
+        batch_op.add_column(
+            sa.Column('birth_city', sa.String(length=80), nullable=True))
+        batch_op.add_column(sa.Column('birth_neighborhood',
+                            sa.String(length=120), nullable=True))
+        batch_op.add_column(
+            sa.Column('birth_street', sa.String(length=255), nullable=True))
+        batch_op.add_column(
+            sa.Column('birth_ext_int', sa.String(length=80), nullable=True))
         batch_op.add_column(sa.Column('birth_zip', sa.String(length=30), nullable=True))
         batch_op.add_column(sa.Column('birth_other_info', sa.Text(), nullable=True))
 
-        batch_op.add_column(sa.Column('residence_country', sa.String(length=80), nullable=True))
-        batch_op.add_column(sa.Column('residence_state', sa.String(length=80), nullable=True))
-        batch_op.add_column(sa.Column('residence_city', sa.String(length=80), nullable=True))
-        batch_op.add_column(sa.Column('residence_neighborhood', sa.String(length=120), nullable=True))
-        batch_op.add_column(sa.Column('residence_street', sa.String(length=255), nullable=True))
-        batch_op.add_column(sa.Column('residence_ext_int', sa.String(length=80), nullable=True))
-        batch_op.add_column(sa.Column('residence_zip', sa.String(length=30), nullable=True))
+        batch_op.add_column(sa.Column('residence_country',
+                            sa.String(length=80), nullable=True))
+        batch_op.add_column(sa.Column('residence_state',
+                            sa.String(length=80), nullable=True))
+        batch_op.add_column(
+            sa.Column('residence_city', sa.String(length=80), nullable=True))
+        batch_op.add_column(sa.Column('residence_neighborhood',
+                            sa.String(length=120), nullable=True))
+        batch_op.add_column(sa.Column('residence_street',
+                            sa.String(length=255), nullable=True))
+        batch_op.add_column(sa.Column('residence_ext_int',
+                            sa.String(length=80), nullable=True))
+        batch_op.add_column(
+            sa.Column('residence_zip', sa.String(length=30), nullable=True))
         batch_op.add_column(sa.Column('residence_other_info', sa.Text(), nullable=True))
 
-        batch_op.add_column(sa.Column('piercings_bool', sa.Boolean(), nullable=True))
-        batch_op.add_column(sa.Column('tattoos_bool', sa.Boolean(), nullable=True))
+        # Boolean flags with server defaults (safer for existing rows)
+        batch_op.add_column(sa.Column('piercings_bool', sa.Boolean(),
+                            nullable=True, server_default=sa.text('false')))
+        batch_op.add_column(sa.Column('tattoos_bool', sa.Boolean(),
+                            nullable=True, server_default=sa.text('false')))
 
-        batch_op.add_column(sa.Column('consume_tobacco', sa.Boolean(), nullable=True))
-        batch_op.add_column(sa.Column('consume_alcohol', sa.Boolean(), nullable=True))
-        batch_op.add_column(sa.Column('consume_recreational_drugs', sa.Boolean(), nullable=True))
+        batch_op.add_column(sa.Column('consume_tobacco', sa.Boolean(),
+                            nullable=True, server_default=sa.text('false')))
+        batch_op.add_column(sa.Column('consume_alcohol', sa.Boolean(),
+                            nullable=True, server_default=sa.text('false')))
+        batch_op.add_column(sa.Column('consume_recreational_drugs',
+                            sa.Boolean(), nullable=True, server_default=sa.text('false')))
 
-        # JSON fields (Postgres) - Alembic/SQLAlchemy will handle on SQLite as TEXT if needed
-        try:
-            batch_op.add_column(sa.Column('education_records_json', sa.JSON(), nullable=True))
-            batch_op.add_column(sa.Column('economic_activities_json', sa.JSON(), nullable=True))
-            batch_op.add_column(sa.Column('recent_travel_list_json', sa.JSON(), nullable=True))
-            batch_op.add_column(sa.Column('exercise_activities_json', sa.JSON(), nullable=True))
-        except Exception:
-            # Fallback: create TEXT columns if JSON unsupported at runtime
-            batch_op.add_column(sa.Column('education_records_json', sa.Text(), nullable=True))
-            batch_op.add_column(sa.Column('economic_activities_json', sa.Text(), nullable=True))
-            batch_op.add_column(sa.Column('recent_travel_list_json', sa.Text(), nullable=True))
-            batch_op.add_column(sa.Column('exercise_activities_json', sa.Text(), nullable=True))
+        # JSON/JSONB when Postgres is used; otherwise TEXT
+        if using_postgres:
+            batch_op.add_column(sa.Column('education_records_json',
+                                postgresql.JSONB(astext_type=sa.Text()), nullable=True))
+            batch_op.add_column(sa.Column('economic_activities_json',
+                                postgresql.JSONB(astext_type=sa.Text()), nullable=True))
+            batch_op.add_column(sa.Column('recent_travel_list_json',
+                                postgresql.JSONB(astext_type=sa.Text()), nullable=True))
+            batch_op.add_column(sa.Column('exercise_activities_json',
+                                postgresql.JSONB(astext_type=sa.Text()), nullable=True))
+        else:
+            batch_op.add_column(
+                sa.Column('education_records_json', sa.Text(), nullable=True))
+            batch_op.add_column(
+                sa.Column('economic_activities_json', sa.Text(), nullable=True))
+            batch_op.add_column(
+                sa.Column('recent_travel_list_json', sa.Text(), nullable=True))
+            batch_op.add_column(
+                sa.Column('exercise_activities_json', sa.Text(), nullable=True))
 
     # PathologicalBackground additions
     with op.batch_alter_table('pathological_background', schema=None) as batch_op:
-        try:
-            batch_op.add_column(sa.Column('personal_diseases_list', sa.JSON(), nullable=True))
-            batch_op.add_column(sa.Column('medications_list', sa.JSON(), nullable=True))
-            batch_op.add_column(sa.Column('hospitalizations_list', sa.JSON(), nullable=True))
-            batch_op.add_column(sa.Column('traumatisms_list', sa.JSON(), nullable=True))
-            batch_op.add_column(sa.Column('transfusions_list', sa.JSON(), nullable=True))
-        except Exception:
-            batch_op.add_column(sa.Column('personal_diseases_list', sa.Text(), nullable=True))
+        if using_postgres:
+            batch_op.add_column(sa.Column('personal_diseases_list',
+                                postgresql.JSONB(astext_type=sa.Text()), nullable=True))
+            batch_op.add_column(sa.Column('medications_list', postgresql.JSONB(
+                astext_type=sa.Text()), nullable=True))
+            batch_op.add_column(sa.Column('hospitalizations_list',
+                                postgresql.JSONB(astext_type=sa.Text()), nullable=True))
+            batch_op.add_column(sa.Column('traumatisms_list', postgresql.JSONB(
+                astext_type=sa.Text()), nullable=True))
+            batch_op.add_column(sa.Column('transfusions_list', postgresql.JSONB(
+                astext_type=sa.Text()), nullable=True))
+        else:
+            batch_op.add_column(
+                sa.Column('personal_diseases_list', sa.Text(), nullable=True))
             batch_op.add_column(sa.Column('medications_list', sa.Text(), nullable=True))
-            batch_op.add_column(sa.Column('hospitalizations_list', sa.Text(), nullable=True))
+            batch_op.add_column(
+                sa.Column('hospitalizations_list', sa.Text(), nullable=True))
             batch_op.add_column(sa.Column('traumatisms_list', sa.Text(), nullable=True))
-            batch_op.add_column(sa.Column('transfusions_list', sa.Text(), nullable=True))
+            batch_op.add_column(
+                sa.Column('transfusions_list', sa.Text(), nullable=True))
 
 
 def downgrade():

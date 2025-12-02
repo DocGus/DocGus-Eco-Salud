@@ -485,9 +485,9 @@ def get_student_requests():
             "full_name": f"{student.first_name} {student.first_surname}",
             "email": student.email,
             "career": data.career,
-            "academic_grade": data.academic_grade_prof.value if data.academic_grade_prof else "N/A",
+            "academic_grade": getattr(data.academic_grade_prof, 'value', data.academic_grade_prof) if data.academic_grade_prof else "N/A",
             "requested_at": data.requested_at.isoformat() if data.requested_at else None,
-            "status": student.status.value
+            "status": getattr(student.status, 'value', student.status)
         })
 
     return jsonify(result), 200
@@ -681,6 +681,76 @@ def save_backgrounds():
         except Exception:
             pass
 
+        # Preservar arrays tal cual: las columnas multiselección se migrarán a JSON.
+        try:
+            # Mapear detalles de tatuajes/piercings si se envían desde frontend
+            # Guarda los detalles en `other_recreational_info` para evitar cambios en esquema
+            try:
+                if 'tattoos_details' in non_path_data and non_path_data.get('tattoos_details'):
+                    prev = non_path_data.get('other_recreational_info') or ''
+                    add = str(non_path_data.get('tattoos_details')).strip()
+                    non_path_data['other_recreational_info'] = (
+                        prev + (' | ' + add if prev else add)).strip()
+                    non_path_data.pop('tattoos_details', None)
+                if 'piercings_details' in non_path_data and non_path_data.get('piercings_details'):
+                    prev = non_path_data.get('other_recreational_info') or ''
+                    add = str(non_path_data.get('piercings_details')).strip()
+                    non_path_data['other_recreational_info'] = (
+                        prev + (' | ' + add if prev else add)).strip()
+                    non_path_data.pop('piercings_details', None)
+            except Exception:
+                pass
+
+            # Intento seguro de convertir valores a enums cuando aplicable
+            from api.models import (
+                CivilStatus, HousingType, YesNo, QualityLevel
+            )
+            enum_map = {
+                'civil_status': CivilStatus,
+                'housing_type': HousingType,
+                'has_piercings': YesNo,
+                'has_tattoos': YesNo,
+                'has_medical_insurance': YesNo,
+                'diet_quality': QualityLevel,
+                'hygiene_quality': QualityLevel,
+                'exercise_quality': QualityLevel,
+                'sleep_quality': QualityLevel,
+            }
+            for k, enum_cls in enum_map.items():
+                if k in non_path_data and non_path_data.get(k) is not None:
+                    val = non_path_data.get(k)
+                    # Si viene como booleano para yes/no, mapear
+                    try:
+                        if isinstance(val, bool):
+                            non_path_data[k] = 'yes' if val else 'no'
+                        elif isinstance(val, (int, float)):
+                            non_path_data[k] = 'yes' if int(val) else 'no'
+                        elif isinstance(val, str):
+                            # intentar normalizar nombres (acepta tanto 'yes'/'no' como enum values)
+                            non_path_data[k] = val
+                    except Exception:
+                        pass
+
+            # Algunas versiones del frontend envían 'religions' — el modelo usa 'spiritual_practices'
+            if 'religions' in non_path_data:
+                rel_val = non_path_data.get('religions')
+                if isinstance(rel_val, (list, tuple)):
+                    rel_val = ', '.join([str(x).strip() for x in rel_val])
+                # Si no existe columna 'religions', mapear a 'spiritual_practices'
+                if not hasattr(medical_file.non_pathological_background, 'religions'):
+                    # Si ya había spiritual_practices, anexar
+                    prev = non_path_data.get('spiritual_practices') or ''
+                    combined = (prev + (', ' + rel_val if prev else rel_val)
+                                ).strip() if rel_val else prev
+                    if combined:
+                        non_path_data['spiritual_practices'] = combined
+                    # eliminar la clave original para evitar asignación directa
+                    non_path_data.pop('religions', None)
+                else:
+                    non_path_data['religions'] = rel_val
+        except Exception:
+            pass
+
         for key, value in non_path_data.items():
             # Log intento de asignación
             try:
@@ -835,8 +905,8 @@ def save_backgrounds():
             mod = MedicalFileModification(
                 medical_file_id=medical_file.id,
                 author_id=author.id if author else None,
-                author_role=author.role.value if author and hasattr(
-                    author, 'role') else None,
+                author_role=(getattr(author.role, 'value', author.role)
+                             if author and hasattr(author, 'role') else None),
                 action='send_for_review',
                 payload=medical_file.serialize(),
                 ip=request.remote_addr,
@@ -1061,7 +1131,7 @@ def get_assigned_patients():
             "id": patient.id,
             "full_name": f"{patient.first_name} {patient.first_surname}",
             "medicalFileId": f.id,
-            "file_status": f.file_status.name if f.file_status else "N/A",
+            "file_status": getattr(f.file_status, 'name', f.file_status) if f.file_status else "N/A",
         })
 
     return jsonify(result), 200
